@@ -1,0 +1,16 @@
+name: Feature request
+description: A new classifier, cataloger, output format, or capability.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to detect or achieve that glance can't today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: For a new classifier, include the gate glob and an example version string.

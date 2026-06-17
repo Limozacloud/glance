@@ -1,0 +1,102 @@
+# glance default scan configuration.
+#
+# Every key below is optional — these are the built-in defaults (which also live
+# in code, so glance runs with no config at all). Copy this file, edit what you
+# need, and pass it with `--config`. Present keys override the default; absent
+# keys keep it. Unknown keys are a hard error (a typo must not silently change
+# what gets scanned).
+
+# ---------------------------------------------------------------------------
+# Scope
+# ---------------------------------------------------------------------------
+
+# Root paths to scan (the surface). Used by the walk fallback; with a locate
+# engine these bound which results are kept.
+include_paths:
+  - /
+
+# Extra paths to exclude (prefix match).
+exclude_paths: []
+
+# Filesystem types never scanned — network shares and virtual filesystems.
+exclude_fs_types:
+  - nfs
+  - nfs4
+  - cifs
+  - smbfs
+  - fuse.sshfs
+  - overlay
+  - tmpfs
+  - devtmpfs
+  - proc
+  - sysfs
+  - cgroup
+  - cgroup2
+  - squashfs
+  - autofs
+
+# ALWAYS walked directly, regardless of engine, DB freshness or any customer
+# updatedb.conf pruning. Small and cheap; guarantees the locations that matter
+# are never silently excluded.
+mandatory_paths:
+  - /usr/lib
+  - /usr/lib64
+  - /lib
+  - /lib64
+  - /usr/local/lib
+  - /opt
+
+# The glob gate. null = derive from the active classifiers (recommended).
+# Example to narrow it:
+#   file_globs:
+#     - "**/libcrypto.so*"
+#     - "**/libssl.so*"
+#     - "**/openssl"
+file_globs: null
+
+follow_symlinks: false
+
+# ---------------------------------------------------------------------------
+# Discovery engine
+# ---------------------------------------------------------------------------
+
+# auto | plocate | mlocate | walk
+engine: auto
+
+# A locate DB older than this (hours) is treated as not usable.
+max_db_age_hours: 24
+
+# What to do with a stale DB: fallback (cascade onward) | warn (use it anyway).
+on_stale_db: fallback
+
+# Use a specific locate DB instead of probing standard paths. null = probe.
+locate_db_path: null
+
+# ---------------------------------------------------------------------------
+# Catalogers
+# ---------------------------------------------------------------------------
+
+# Which catalogers to run. null = all applicable on this host.
+# Options: binary, rpm, dpkg, apk
+catalogers: null
+
+# Correlate binary finds against package-DB file ownership (managed/unmanaged).
+correlate_ownership: true
+
+# ---------------------------------------------------------------------------
+# Content scan
+# ---------------------------------------------------------------------------
+
+# Skip content scan of files larger than this (bytes). Default 200 MiB.
+max_file_size: 209715200
+
+# Read only the first 4 bytes for the ELF magic before a full scan. Off by
+# default: some classifiers target scripts (composer, wp, elixir), so a global
+# ELF gate would cause silent false negatives.
+elf_precheck: false
+
+# Compute sha256 of matched files (extra I/O).
+compute_sha256: false
+
+# ---------------------------------------------------------------------------
+log_level: INFO

@@ -1,0 +1,57 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "glance"
+version = "0.1.0"
+description = "Mini-SBOM scanner: installed packages (rpm/dpkg/apk) plus unmanaged binaries found via locate gates, attributed to upstream identities with PURL/CPE"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [{ name = "LimozaCloud" }]
+dependencies = ["PyYAML>=6"]
+keywords = ["sbom", "cyclonedx", "binary", "openssl", "purl", "cpe", "vulnerability", "rpm", "dpkg", "apk"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security",
+    "Topic :: System :: Software Distribution",
+]
+
+[project.urls]
+Homepage   = "https://github.com/Limozacloud/glance"
+Repository = "https://github.com/Limozacloud/glance"
+Issues     = "https://github.com/Limozacloud/glance/issues"
+
+[project.scripts]
+glance = "glance.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["glance"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff>=0.4", "mypy>=1.9", "types-PyYAML"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+extend-exclude = ["syft"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+exclude = ["syft/", "tests/"]
