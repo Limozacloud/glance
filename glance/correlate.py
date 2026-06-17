@@ -4,7 +4,7 @@ For each binary find we ask the package DBs: *does any package own this exact
 path?* If yes, the find is managed — the package component already represents it
 (with a proper ``pkg:rpm/deb/apk`` PURL), so we suppress it as a standalone
 component and only record it in the report. If no package owns it, it is an
-unmanaged find (e.g. a library an agent shipped itself); it becomes its own
+unmanaged find (e.g. a vendored/bundled library); it becomes its own
 ``pkg:generic`` component, and — when it lives outside the standard system
 library dirs — is attributed to the install path as an ``application`` that
 bundles it.

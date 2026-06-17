@@ -722,7 +722,7 @@ def default_classifiers() -> list[Classifier]:
             # glance enhancement: Syft gates only "**/openssl" (the CLI binary).
             # We deliberately also gate the shared libraries, because the version
             # string "OpenSSL X" lives in libcrypto/libssl too — and those are
-            # exactly the unmanaged copies an agent ships that OSV/Trivy miss.
+            # exactly the unmanaged/vendored copies OSV/Trivy miss.
             cls="openssl-binary",
             file_globs=["**/openssl", "**/libcrypto.so*", "**/libssl.so*"],
             matcher=branching(

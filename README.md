@@ -13,19 +13,19 @@ A **mini-SBOM scanner** for Linux servers. It produces a compact
    identity — e.g. a bundled `libcrypto.so.1.1` becomes `openssl 1.1.1w` with a
    `pkg:generic/openssl@1.1.1w` PURL **and** a versioned CPE.
 
-That second part is the point: when an agent ships its **own** `libcrypto.so`
-(copied in, compiled with Nuitka, whatever), no package manager owns it, so OSV
-and Trivy never flag it. glance finds it, identifies it as OpenSSL with a CPE a
-vulnerability scanner can match, and — because no package owns the path —
-attributes it to the install directory as an `application` that *bundles* the
-vulnerable library.
+That second part is the point: a **vendored** or **bundled** `libcrypto.so` —
+one that ships alongside some software rather than being installed by the system
+package manager — is owned by no package, so OSV and Trivy never flag it. glance
+finds it, identifies it as OpenSSL with a CPE a vulnerability scanner can match,
+and — because no package owns the path — attributes it to the install directory
+as an `application` that *bundles* the vulnerable library.
 
 The output is consumable directly by **Grype, Trivy and osv-scanner**.
 
 > The classifier concept is derived from
-> [Anchore Syft's binary cataloger](https://github.com/anchore/syft/tree/main/syft/pkg/cataloger/binary)
-> — re-implemented independently in pure Python (concept only, no code copied),
-> and deliberately extended to gate the OpenSSL `.so` libraries, not just the CLI.
+> [Anchore Syft's binary cataloger](https://github.com/anchore/syft/tree/main/syft/pkg/cataloger/binary),
+> re-implemented in pure Python and extended to gate shared libraries
+> (e.g. the OpenSSL `.so` files), not just CLI binaries.
 
 ## Install
 

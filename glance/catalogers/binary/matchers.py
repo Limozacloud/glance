@@ -1,5 +1,4 @@
-"""Evidence matchers — a faithful, data-driven port of Syft's binary matcher
-combinators (concept only, independent implementation).
+"""Evidence matchers — a data-driven port of Syft's binary matcher combinators.
 
 A *classifier* is data: a file-glob gate plus a *matcher*. A matcher is a
 callable ``(classifier, context) -> list[MatchResult] | None`` where ``None``
