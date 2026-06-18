@@ -1,22 +1,41 @@
 name: CI
 
 on:
+  push:
+    branches: ["main"]
   pull_request:
     types: [opened, edited, synchronize, reopened]
     branches: ["main"]
 
 jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            code:
+              - 'glance/**'
+              - 'tests/**'
+              - 'pyproject.toml'
+
   branch-name:
     name: Branch name
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    # release-please owns its own branch naming, so exempt it from our convention
+    if: github.event_name == 'pull_request' && !startsWith(github.head_ref, 'release-please')
     steps:
       - name: Check branch name
         run: |
           branch="${{ github.head_ref }}"
-          if ! echo "$branch" | grep -qE '^(feat|fix|chore|docs|test|refactor|perf)/[a-z0-9._-]+$'; then
+          if ! echo "$branch" | grep -qE '^(feat|fix|chore|docs|test|refactor|perf|ci)/[a-z0-9._-]+$'; then
             echo "Invalid branch name: '$branch'"
-            echo "Expected pattern: (feat|fix|chore|docs|test|refactor|perf)/description"
+            echo "Expected pattern: (feat|fix|chore|docs|test|refactor|perf|ci)/description"
             exit 1
           fi
 
@@ -33,6 +52,8 @@ jobs:
 
   lint:
     name: Lint
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -50,6 +71,8 @@ jobs:
 
   test:
     name: "Python ${{ matrix.python-version }}"
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
