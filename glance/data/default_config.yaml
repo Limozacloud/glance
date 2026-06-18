@@ -83,6 +83,12 @@ catalogers: null
 # Correlate binary finds against package-DB file ownership (managed/unmanaged).
 correlate_ownership: true
 
+# Extra binary-classifier definition files (YAML/JSON), loaded in addition to the
+# built-ins — add classifiers without touching code. See the README.
+# classifier_files:
+#   - /etc/glance/extra-classifiers.yaml
+classifier_files: []
+
 # ---------------------------------------------------------------------------
 # Content scan
 # ---------------------------------------------------------------------------
