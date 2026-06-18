@@ -24,6 +24,7 @@ import time
 
 from .catalogers import PACKAGE_CATALOGERS, BinaryCataloger
 from .catalogers.binary.classifiers import default_classifiers
+from .catalogers.binary.loader import load_classifier_file
 from .config import Config, Engine, OnStaleDB
 from .correlate import OwnershipResolver, correlate
 from .discovery import discover
@@ -58,6 +59,8 @@ def scan(config: Config | None = None) -> ScanResult:
     start = time.perf_counter()
 
     classifiers = default_classifiers()
+    for path in config.classifier_files:
+        classifiers.extend(load_classifier_file(path))
     globs = config.file_globs or derive_globs(classifiers)
     gate = Gate(globs)
 

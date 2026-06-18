@@ -112,6 +112,7 @@ absent keys keep it, and an unknown key is a hard error.
 | `on_stale_db` | `fallback` | `fallback` (cascade) or `warn` (use anyway) |
 | `catalogers` | `null` (all applicable) | subset of `binary,rpm,dpkg,apk` |
 | `correlate_ownership` | `true` | managed/unmanaged correlation |
+| `classifier_files` | `[]` | extra YAML/JSON classifier definitions (no code change) |
 | `max_file_size` | `209715200` | skip content scan above this many bytes |
 | `elf_precheck` | `false` | gate on ELF magic (skips script tools if on) |
 | `compute_sha256` | `false` | hash matched files |
@@ -140,6 +141,32 @@ Richer matchers are available: `any_of`, `all_of`, `none_of`, `branching`
 (pick an identity per sub-match, e.g. AWS-LC vs OpenSSL), `filename_template`
 (version from the filename), `shared_library` (version from a referenced `.so`),
 and `supporting` (a neighbouring `VERSION` file).
+
+### …or without touching code
+
+Define classifiers in an external YAML/JSON file and point `classifier_files`
+at it — they are loaded in addition to the built-ins:
+
+```yaml
+# extra-classifiers.yaml
+classifiers:
+  - class: nginx-library
+    file_globs: ["**/libnginx.so*"]
+    version_patterns:          # OR — byte regexes; \x00 etc. are honoured
+      - 'nginx version: [^/]+/(?P<version>[0-9]+\.[0-9]+\.[0-9]+)'
+    package: nginx
+    purl: "pkg:generic/nginx@{version}"
+    cpes: ["cpe:2.3:a:f5:nginx:{version}:*:*:*:*:*:*:*"]
+```
+
+```yaml
+# scan config
+classifier_files:
+  - /etc/glance/extra-classifiers.yaml
+```
+
+`all_patterns` (AND) and `branches` (one identity per sub-match) are also
+supported for the less common cases.
 
 ## Development
 

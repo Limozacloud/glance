@@ -90,6 +90,9 @@ class Config:
     catalogers: list[str] | None = None
     #: Correlate binary finds against package-DB file ownership (managed/unmanaged).
     correlate_ownership: bool = True
+    #: Extra binary-classifier definition files (YAML/JSON) loaded in addition to
+    #: the built-ins — add classifiers without touching code.
+    classifier_files: list[str] = field(default_factory=list)
 
     # --- content scan ----------------------------------------------------------
     #: Skip content scan of files larger than this (bytes). Checked lazily.
