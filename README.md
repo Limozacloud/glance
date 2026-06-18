@@ -1,6 +1,6 @@
 # glance
 
-[![CI](https://github.com/Limozacloud/glance/actions/workflows/ci.yml/badge.svg)](https://github.com/Limozacloud/glance/actions/workflows/ci.yml)
+[![CI](https://github.com/Limozacloud/glance/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Limozacloud/glance/actions/workflows/ci.yml?query=branch%3Amain)
 [![License](https://img.shields.io/github/license/Limozacloud/glance)](LICENSE)
 
 A **mini-SBOM scanner** for Linux servers. It produces a compact
