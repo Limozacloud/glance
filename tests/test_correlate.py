@@ -66,3 +66,43 @@ def test_same_version_managed_and_unmanaged_split():
     libs = [c for c in out if c.type == ComponentType.LIBRARY]
     assert len(libs) == 1
     assert libs[0].occurrences[0].path == "/opt/agent/libcrypto.so.3"
+
+
+def test_foreign_package_bundling_a_lib_is_surfaced():
+    # a third-party deb owns a bundled openssl 1.1.1 (the agent-bundle case)
+    comp = _openssl("/opt/acme-agent/lib/libcrypto.so.1.1")
+    owner = "pkg:deb/ubuntu/acme-agent@1.25.0-1?arch=amd64"
+    resolver = OwnershipResolver({"/opt/acme-agent/lib/libcrypto.so.1.1": owner})
+    report = ScanReport()
+    out = correlate([comp], resolver, report)
+    assert len(out) == 1
+    lib = out[0]
+    assert lib.name == "openssl" and lib.version == "1.1.1w"
+    assert lib.purl == "pkg:generic/openssl@1.1.1w"
+    assert lib.managed is True  # owned by a package, but a foreign one
+    assert lib.owned_by == owner
+    assert any("bundled by" in c for c in report.correlations)
+
+
+def test_same_product_deb_is_still_suppressed():
+    # libcrypto.so.3 owned by libssl3 -> same product -> suppressed
+    comp = _openssl("/usr/lib/x86_64-linux-gnu/libcrypto.so.3")
+    owner = "pkg:deb/ubuntu/libssl3@3.0.2-0ubuntu1.25?arch=amd64"
+    resolver = OwnershipResolver({"/usr/lib/x86_64-linux-gnu/libcrypto.so.3": owner})
+    report = ScanReport()
+    out = correlate([comp], resolver, report)
+    assert out == []
+    assert any("same product" in c for c in report.correlations)
+
+
+def test_same_product_matching():
+    from glance.correlate import _same_product
+
+    assert _same_product("openssl", "pkg:deb/ubuntu/libssl3@3.0.2")
+    assert _same_product("openssl", "pkg:rpm/rhel/openssl-libs@3.0.7")
+    assert _same_product("libarchive", "pkg:deb/ubuntu/libarchive13@3.6.0")
+    assert _same_product("xz", "pkg:deb/ubuntu/xz-utils@5.2.5")
+    assert _same_product("python", "pkg:deb/ubuntu/python3.10-minimal@3.10.12")
+    # foreign bundlers
+    assert not _same_product("openssl", "pkg:deb/ubuntu/acme-agent@1.25.0")
+    assert not _same_product("sqlite3", "pkg:deb/ubuntu/some-agent@1.0")

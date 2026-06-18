@@ -58,11 +58,22 @@ def _component(comp: Component) -> dict:
 
 
 def _dependencies(components: list[Component]) -> list[dict]:
-    deps = []
+    # ref -> ordered list of dependency bom-refs, merged from explicit depends_on
+    # and from owned_by (a bundled/owned component is a dependency of its owner).
+    edges: dict[str, list[str]] = {}
+
+    def add(ref: str, child: str) -> None:
+        children = edges.setdefault(ref, [])
+        if child not in children:
+            children.append(child)
+
     for comp in components:
-        if comp.depends_on and comp.bom_ref:
-            deps.append({"ref": comp.bom_ref, "dependsOn": list(comp.depends_on)})
-    return deps
+        if comp.bom_ref and comp.depends_on:
+            for child in comp.depends_on:
+                add(comp.bom_ref, child)
+        if comp.bom_ref and comp.owned_by:
+            add(comp.owned_by, comp.bom_ref)
+    return [{"ref": ref, "dependsOn": children} for ref, children in edges.items() if children]
 
 
 def to_cyclonedx(result: ScanResult, tool_version: str = "0.1.0") -> dict:
