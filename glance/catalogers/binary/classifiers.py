@@ -807,7 +807,9 @@ def default_classifiers() -> list[Classifier]:
         ),
         Classifier(
             cls="curl-binary",
-            file_globs=["**/curl"],
+            # glance: also gate libcurl.so — its UA string "libcurl/8.5.0" contains
+            # "curl/8.5.0", so the same regex captures the shared-library version.
+            file_globs=["**/curl", "**/libcurl.so*"],
             matcher=contents(rb"curl/(?P<version>[0-9]+\.[0-9]+\.[0-9]+)"),
             package="curl",
             purl_template="pkg:generic/curl@{version}",
@@ -1118,6 +1120,63 @@ def default_classifiers() -> list[Classifier]:
             package="elastic-agent",
             purl_template="pkg:generic/elastic-agent@{version}",
             cpe_templates=["cpe:2.3:a:elastic:elastic_agent:{version}:*:*:*:*:*:*:*"],
+        ),
+        # --- glance additions (CVE-gap driven; validated against real .so) ----
+        Classifier(
+            # TIFFGetVersion() string, confirmed on libtiff.so.6.0.1:
+            #   LIBTIFF, Version 4.5.1\nCopyright (c) 1988-1996 Sam Leffler...
+            cls="libtiff-library",
+            file_globs=["**/libtiff.so*"],
+            matcher=contents(rb"LIBTIFF, Version (?P<version>[0-9]+\.[0-9]+\.[0-9]+)"),
+            package="libtiff",
+            purl_template="pkg:generic/libtiff@{version}",
+            cpe_templates=["cpe:2.3:a:libtiff:libtiff:{version}:*:*:*:*:*:*:*"],
+        ),
+        Classifier(
+            # XML_ExpatVersion(), confirmed on libexpat.so.1: "expat_2.6.1"
+            cls="expat-library",
+            file_globs=["**/libexpat.so*"],
+            matcher=contents(rb"expat_(?P<version>[0-9]+\.[0-9]+\.[0-9]+)"),
+            package="expat",
+            purl_template="pkg:generic/expat@{version}",
+            cpe_templates=["cpe:2.3:a:libexpat_project:libexpat:{version}:*:*:*:*:*:*:*"],
+        ),
+        Classifier(
+            # pcre2 version string, confirmed on libpcre2-8.so.0: "10.42 2022-12-11"
+            # (the trailing build date disambiguates it from the bundled Unicode version)
+            cls="pcre2-library",
+            file_globs=["**/libpcre2-8.so*", "**/libpcre2-16.so*", "**/libpcre2-32.so*"],
+            matcher=contents(rb"(?P<version>[0-9]+\.[0-9]+) [0-9]{4}-[0-9]{2}-[0-9]{2}"),
+            package="pcre2",
+            purl_template="pkg:generic/pcre2@{version}",
+            cpe_templates=["cpe:2.3:a:pcre:pcre2:{version}:*:*:*:*:*:*:*"],
+        ),
+        Classifier(
+            # client identification string, confirmed on libssh.so.4: "SSH-2.0-libssh_0.10.6"
+            cls="libssh-library",
+            file_globs=["**/libssh.so*"],
+            matcher=contents(rb"libssh_(?P<version>[0-9]+\.[0-9]+\.[0-9]+)"),
+            package="libssh",
+            purl_template="pkg:generic/libssh@{version}",
+            cpe_templates=["cpe:2.3:a:libssh:libssh:{version}:*:*:*:*:*:*:*"],
+        ),
+        Classifier(
+            # png_get_copyright(), confirmed on libpng16.so.16: "libpng version 1.6.43"
+            cls="libpng-library",
+            file_globs=["**/libpng*.so*"],
+            matcher=contents(rb"libpng version (?P<version>[0-9]+\.[0-9]+\.[0-9]+)"),
+            package="libpng",
+            purl_template="pkg:generic/libpng@{version}",
+            cpe_templates=["cpe:2.3:a:libpng:libpng:{version}:*:*:*:*:*:*:*"],
+        ),
+        Classifier(
+            # archive_version_string(), confirmed on libarchive.so.13: "libarchive 3.7.2"
+            cls="libarchive-library",
+            file_globs=["**/libarchive.so*"],
+            matcher=contents(rb"libarchive (?P<version>[0-9]+\.[0-9]+\.[0-9]+)"),
+            package="libarchive",
+            purl_template="pkg:generic/libarchive@{version}",
+            cpe_templates=["cpe:2.3:a:libarchive:libarchive:{version}:*:*:*:*:*:*:*"],
         ),
     ]
 
