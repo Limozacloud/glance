@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -17,7 +17,6 @@ from glance.catalogers.win_binary import (
     match_binary,
 )
 from glance.models import ComponentType, ScanReport, Source
-
 
 # ── Small test index ──────────────────────────────────────────────────────────
 

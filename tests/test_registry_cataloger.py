@@ -10,11 +10,8 @@ import sys
 import types
 from unittest.mock import patch
 
-import pytest
-
 from glance.catalogers.registry import RegistryCataloger, _fill, _match
 from glance.models import ScanReport, Source
-
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
