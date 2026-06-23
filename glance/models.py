@@ -27,6 +27,7 @@ class Source(str, Enum):
     RPM = "rpm"
     DPKG = "dpkg"
     APK = "apk"
+    REGISTRY = "registry"
 
 
 class SkipReason(str, Enum):

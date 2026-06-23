@@ -1,0 +1,182 @@
+"""Windows registry cataloger — reads installed software from Uninstall keys.
+
+Reads three hives:
+  HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*          (64-bit)
+  HKLM\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\* (32-bit on 64-bit OS)
+  HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*          (per-user)
+
+Each entry is matched against ``glance/data/win_cpe_index.yaml``. Matched
+components are emitted with a full PURL + CPE so downstream scanners (Grype,
+Trivy) can correlate against the NVD.
+"""
+
+from __future__ import annotations
+
+import logging
+import sys
+from importlib.resources import files
+from typing import TYPE_CHECKING
+
+from ..models import CatalogerStatus, Component, ComponentType, ScanReport, Source
+
+if TYPE_CHECKING:
+    pass
+
+log = logging.getLogger(__name__)
+
+_UNINSTALL_PATHS = [
+    # (hive_constant, subkey)
+    # populated at runtime after winreg is imported
+]
+
+_HKLM = 0x80000002
+_HKCU = 0x80000001
+
+_UNINSTALL_KEYS = [
+    (_HKLM, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"),
+    (_HKLM, r"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"),
+    (_HKCU, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"),
+]
+
+
+def _load_index() -> list[dict]:
+    """Load and return the win_cpe_index.yaml entries (cached on first call)."""
+    try:
+        import yaml
+    except ImportError as exc:
+        raise ImportError(
+            "win_cpe_index requires PyYAML — pip install glance[full]"
+        ) from exc
+    data_pkg = files("glance").joinpath("data")
+    text = data_pkg.joinpath("win_cpe_index.yaml").read_text(encoding="utf-8")
+    doc = yaml.safe_load(text)
+    return doc.get("entries", [])
+
+
+_INDEX_CACHE: list[dict] | None = None
+
+
+def _index() -> list[dict]:
+    global _INDEX_CACHE
+    if _INDEX_CACHE is None:
+        _INDEX_CACHE = _load_index()
+    return _INDEX_CACHE
+
+
+def _match(display_name: str, publisher: str, entry: dict) -> bool:
+    """Return True if this registry entry matches the CPE index entry."""
+    dn_lower = display_name.lower()
+    patterns: list[str] = entry.get("display_name_contains") or []
+    if not any(p.lower() in dn_lower for p in patterns):
+        return False
+    pub_patterns: list[str] = entry.get("publisher_contains") or []
+    if pub_patterns:
+        pub_lower = publisher.lower()
+        if not any(p.lower() in pub_lower for p in pub_patterns):
+            return False
+    return True
+
+
+def _fill(template: str, version: str) -> str:
+    return template.replace("{version}", version or "*")
+
+
+class RegistryCataloger:
+    name = "registry"
+
+    def available(self) -> bool:
+        return sys.platform == "win32"
+
+    def catalog(self, report: ScanReport) -> list[Component]:
+        if not self.available():
+            report.catalogers.append(
+                CatalogerStatus(self.name, False, detail="not available on this platform")
+            )
+            return []
+
+        try:
+            import winreg  # noqa: PLC0415 — Windows only
+        except ImportError:
+            report.catalogers.append(
+                CatalogerStatus(self.name, False, detail="winreg not available")
+            )
+            return []
+
+        try:
+            index = _index()
+        except Exception as exc:
+            report.catalogers.append(
+                CatalogerStatus(self.name, False, detail=f"failed to load CPE index: {exc}")
+            )
+            return []
+
+        seen: set[str] = set()
+        components: list[Component] = []
+
+        for hive, subkey in _UNINSTALL_KEYS:
+            try:
+                root_key = winreg.OpenKey(hive, subkey)
+            except OSError:
+                continue
+            with root_key:
+                i = 0
+                while True:
+                    try:
+                        child_name = winreg.EnumKey(root_key, i)
+                    except OSError:
+                        break
+                    i += 1
+                    try:
+                        child_key = winreg.OpenKey(root_key, child_name)
+                    except OSError:
+                        continue
+                    with child_key:
+                        display_name = _reg_str(child_key, "DisplayName")
+                        if not display_name:
+                            continue
+                        publisher = _reg_str(child_key, "Publisher") or ""
+                        version = _reg_str(child_key, "DisplayVersion") or ""
+
+                    dedup_key = (display_name.lower(), version.lower())
+                    if dedup_key in seen:
+                        continue
+                    seen.add(dedup_key)
+
+                    for entry in index:
+                        if not _match(display_name, publisher, entry):
+                            continue
+                        purl = _fill(entry["purl_template"], version)
+                        cpe = _fill(entry["cpe_template"], version)
+                        components.append(
+                            Component(
+                                name=entry["name"],
+                                version=version or None,
+                                type=ComponentType.APPLICATION,
+                                source=Source.REGISTRY,
+                                purl=purl,
+                                cpes=[cpe],
+                                bom_ref=purl,
+                                managed=True,
+                                metadata={
+                                    "display_name": display_name,
+                                    "publisher": publisher,
+                                    "index_id": entry["id"],
+                                },
+                            )
+                        )
+                        break  # first match wins
+
+        report.catalogers.append(CatalogerStatus(self.name, True, len(components)))
+        return components
+
+    def file_index(self) -> dict[str, str]:
+        return {}
+
+
+def _reg_str(key: object, value_name: str) -> str | None:
+    try:
+        import winreg
+        val, _ = winreg.QueryValueEx(key, value_name)
+        return str(val).strip() if val else None
+    except OSError:
+        return None

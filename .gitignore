@@ -219,3 +219,12 @@ __marimo__/
 
 # Vendored Syft source (reference only, not part of the package)
 syft/
+
+# Local research / production data — never commit
+win_software_inventory.json
+output/
+nvdcpe-2.0-chunks/
+nvdcpe-2.0/
+
+# Claude Code session data
+.claude/
