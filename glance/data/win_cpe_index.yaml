@@ -345,12 +345,78 @@ entries:
       - "Microsoft Office 2016"
       - "Microsoft Office 2019"
       - "Microsoft Office 365"
+      - "Microsoft Office Professional"
+      - "Microsoft Office Standard"
+      - "Microsoft Office Home"
       - "Microsoft 365"
     publisher_contains:
       - "Microsoft"
     name: microsoft-office
     cpe_template: "cpe:2.3:a:microsoft:office:{version}:*:*:*:*:*:*:*"
     purl_template: "pkg:generic/microsoft-office@{version}"
+
+  - id: microsoft_excel
+    display_name_contains:
+      - "Microsoft Excel"
+    publisher_contains:
+      - "Microsoft"
+    name: microsoft-excel
+    cpe_template: "cpe:2.3:a:microsoft:excel:{version}:*:*:*:*:*:*:*"
+    purl_template: "pkg:generic/microsoft-excel@{version}"
+
+  - id: microsoft_word
+    display_name_contains:
+      - "Microsoft Word"
+    publisher_contains:
+      - "Microsoft"
+    name: microsoft-word
+    cpe_template: "cpe:2.3:a:microsoft:word:{version}:*:*:*:*:*:*:*"
+    purl_template: "pkg:generic/microsoft-word@{version}"
+
+  - id: microsoft_outlook
+    display_name_contains:
+      - "Microsoft Outlook"
+    publisher_contains:
+      - "Microsoft"
+    name: microsoft-outlook
+    cpe_template: "cpe:2.3:a:microsoft:outlook:{version}:*:*:*:*:*:*:*"
+    purl_template: "pkg:generic/microsoft-outlook@{version}"
+
+  - id: microsoft_powerpoint
+    display_name_contains:
+      - "Microsoft PowerPoint"
+    publisher_contains:
+      - "Microsoft"
+    name: microsoft-powerpoint
+    cpe_template: "cpe:2.3:a:microsoft:powerpoint:{version}:*:*:*:*:*:*:*"
+    purl_template: "pkg:generic/microsoft-powerpoint@{version}"
+
+  - id: microsoft_teams
+    display_name_contains:
+      - "Microsoft Teams"
+    publisher_contains:
+      - "Microsoft"
+    name: microsoft-teams
+    cpe_template: "cpe:2.3:a:microsoft:teams:{version}:*:*:*:*:*:*:*"
+    purl_template: "pkg:generic/microsoft-teams@{version}"
+
+  - id: microsoft_visio
+    display_name_contains:
+      - "Microsoft Visio"
+    publisher_contains:
+      - "Microsoft"
+    name: microsoft-visio
+    cpe_template: "cpe:2.3:a:microsoft:visio:{version}:*:*:*:*:*:*:*"
+    purl_template: "pkg:generic/microsoft-visio@{version}"
+
+  - id: microsoft_project
+    display_name_contains:
+      - "Microsoft Project"
+    publisher_contains:
+      - "Microsoft"
+    name: microsoft-project
+    cpe_template: "cpe:2.3:a:microsoft:project:{version}:*:*:*:*:*:*:*"
+    purl_template: "pkg:generic/microsoft-project@{version}"
 
   - id: powershell
     display_name_contains:
