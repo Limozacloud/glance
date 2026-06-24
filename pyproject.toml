@@ -38,6 +38,7 @@ packages = ["glance"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff>=0.4", "mypy>=1.9", "types-PyYAML"]
+docs = ["mkdocs-material>=9.5", "mkdocs-autorefs", "mkdocstrings[python]"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

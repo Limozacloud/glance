@@ -228,3 +228,14 @@ nvdcpe-2.0/
 
 # Claude Code session data
 .claude/
+
+# MkDocs build output
+site/
+
+# Scan outputs (generated at runtime)
+*.scan.json
+scan_*.json
+scan_output.json
+scan_report.json
+scan_minimal.json
+*software_inventory.json
