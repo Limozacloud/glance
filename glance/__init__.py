@@ -72,11 +72,18 @@ def scan(config: Config | None = None) -> ScanResult:
     rpm_owner = None
 
     # 1) package catalogers (also feed ownership correlation)
+    from .catalogers.win_binary import WinBinaryCataloger as _WinBin
     for name, cataloger_cls in PACKAGE_CATALOGERS.items():
         if enabled is not None and name not in enabled:
             report.catalogers.append(CatalogerStatus(name, False, detail="disabled by config"))
             continue
-        cataloger = cataloger_cls()
+        if cataloger_cls is _WinBin:
+            cataloger = cataloger_cls(
+                extensions=config.win_pe_extensions,
+                engine=config.win_binary_engine,
+            )
+        else:
+            cataloger = cataloger_cls()
         if not cataloger.available():
             report.catalogers.append(
                 CatalogerStatus(name, False, detail="not available on this host")

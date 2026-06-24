@@ -9,6 +9,9 @@ keep their default.
 from __future__ import annotations
 
 import json
+import os
+import string
+import sys
 from dataclasses import dataclass, field, fields
 from enum import Enum
 from pathlib import Path
@@ -62,7 +65,12 @@ DEFAULT_MANDATORY_PATHS = [
     "/opt",
 ]
 
-DEFAULT_INCLUDE_PATHS = ["/"]
+if sys.platform == "win32":
+    DEFAULT_INCLUDE_PATHS = [
+        f"{d}:\\" for d in string.ascii_uppercase if os.path.exists(f"{d}:\\")
+    ]
+else:
+    DEFAULT_INCLUDE_PATHS = ["/"]
 
 
 @dataclass
@@ -93,6 +101,13 @@ class Config:
     #: Extra binary-classifier definition files (YAML/JSON) loaded in addition to
     #: the built-ins — add classifiers without touching code.
     classifier_files: list[str] = field(default_factory=list)
+
+    # --- Windows PE binary scan ------------------------------------------------
+    #: File extensions considered for Windows PE binary scanning.
+    win_pe_extensions: list[str] = field(default_factory=lambda: [".dll", ".exe", ".sys"])
+    #: Windows binary discovery engine: "auto" tries Everything (es.exe) then
+    #: falls back to os.walk; "everything" forces es.exe; "walk" forces os.walk.
+    win_binary_engine: str = "auto"
 
     # --- content scan ----------------------------------------------------------
     #: Skip content scan of files larger than this (bytes). Checked lazily.
