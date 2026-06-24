@@ -18,7 +18,7 @@ import os
 import sys
 from importlib.resources import files
 
-from ..models import CatalogerStatus, Component, ComponentType, ScanReport, Source
+from ..models import CatalogerStatus, Component, ComponentType, Occurrence, ScanReport, Source
 
 log = logging.getLogger(__name__)
 
@@ -213,10 +213,10 @@ class WinBinaryCataloger:
                                 cpes=[cpe],
                                 bom_ref=purl,
                                 managed=False,
+                                occurrences=[Occurrence(path=fpath, found_by="win_binary")],
                                 metadata={
                                     "product_name": product_name,
                                     "company": company,
-                                    "path": fpath,
                                     "index_id": entry["id"],
                                 },
                             )
