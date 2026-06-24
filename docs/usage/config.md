@@ -8,7 +8,7 @@ glance accepts a YAML or JSON config file (`--config FILE`) or `Config` object i
 # Paths to scan — the binary cataloger walks these for ELF/PE files;
 # ecosystem catalogers search here for lock files.
 # Default (Linux): ["/"]
-# Default (Windows): ["C:\\Program Files", "C:\\Program Files (x86)", "C:\\ProgramData"]
+# Default (Windows): all mounted drive letters, e.g. ["C:\\", "D:\\", "E:\\"]
 include_paths:
   - /opt
   - /usr/lib64
