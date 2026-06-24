@@ -222,7 +222,7 @@ syft/
 
 # Local research / production data — never commit
 win_software_inventory.json
-output/
+/output/
 nvdcpe-2.0-chunks/
 nvdcpe-2.0/
 
