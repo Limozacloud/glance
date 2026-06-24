@@ -246,7 +246,7 @@ entries:
     publisher_contains:
       - "Microsoft"
     name: sql-server-2012
-    cpe_template: "cpe:2.3:a:microsoft:sql_server:2012:*:*:*:*:*:-:*"
+    cpe_template: "cpe:2.3:a:microsoft:sql_server:{version}:*:*:*:*:*:*:*"
     purl_template: "pkg:generic/sql-server@{version}"
 
   - id: sql_server_2014
@@ -256,7 +256,7 @@ entries:
     publisher_contains:
       - "Microsoft"
     name: sql-server-2014
-    cpe_template: "cpe:2.3:a:microsoft:sql_server:2014:*:*:*:*:*:-:*"
+    cpe_template: "cpe:2.3:a:microsoft:sql_server:{version}:*:*:*:*:*:*:*"
     purl_template: "pkg:generic/sql-server@{version}"
 
   - id: sql_server_2016
@@ -266,7 +266,7 @@ entries:
     publisher_contains:
       - "Microsoft"
     name: sql-server-2016
-    cpe_template: "cpe:2.3:a:microsoft:sql_server:2016:*:*:*:*:*:-:*"
+    cpe_template: "cpe:2.3:a:microsoft:sql_server:{version}:*:*:*:*:*:*:*"
     purl_template: "pkg:generic/sql-server@{version}"
 
   - id: sql_server_2017
@@ -276,7 +276,7 @@ entries:
     publisher_contains:
       - "Microsoft"
     name: sql-server-2017
-    cpe_template: "cpe:2.3:a:microsoft:sql_server:2017:*:*:*:*:*:-:*"
+    cpe_template: "cpe:2.3:a:microsoft:sql_server:{version}:*:*:*:*:*:*:*"
     purl_template: "pkg:generic/sql-server@{version}"
 
   - id: sql_server_2019
@@ -286,7 +286,7 @@ entries:
     publisher_contains:
       - "Microsoft"
     name: sql-server-2019
-    cpe_template: "cpe:2.3:a:microsoft:sql_server_2019:{version}:*:*:*:*:*:*:*"
+    cpe_template: "cpe:2.3:a:microsoft:sql_server:{version}:*:*:*:*:*:*:*"
     purl_template: "pkg:generic/sql-server@{version}"
 
   - id: sql_server_2022
@@ -296,7 +296,7 @@ entries:
     publisher_contains:
       - "Microsoft"
     name: sql-server-2022
-    cpe_template: "cpe:2.3:a:microsoft:sql_server_2022:{version}:*:*:*:*:*:*:*"
+    cpe_template: "cpe:2.3:a:microsoft:sql_server:{version}:*:*:*:*:*:*:*"
     purl_template: "pkg:generic/sql-server@{version}"
 
   - id: azure_data_studio
@@ -362,7 +362,7 @@ entries:
     publisher_contains:
       - "Microsoft"
     name: microsoft-office-2013
-    cpe_template: "cpe:2.3:a:microsoft:office_2013:{version}:*:*:*:*:*:*:*"
+    cpe_template: "cpe:2.3:a:microsoft:office:{version}:*:*:*:*:*:*:*"
     purl_template: "pkg:generic/microsoft-office-2013@{version}"
 
   - id: microsoft_office_2016
