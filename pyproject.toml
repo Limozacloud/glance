@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "glance"
-version = "0.2.0"
+version = "0.3.0"
 description = "Mini-SBOM scanner: installed packages (rpm/dpkg/apk) plus unmanaged binaries found via locate gates, attributed to upstream identities with PURL/CPE"
 readme = "README.md"
 license = { text = "MIT" }

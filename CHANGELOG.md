@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/Limozacloud/glance/compare/glance-v0.2.0...glance-v0.3.0) (2026-06-18)
+
+
+### Features
+
+* surface third-party-bundled libraries instead of suppressing them ([#5](https://github.com/Limozacloud/glance/issues/5)) ([0dee4c6](https://github.com/Limozacloud/glance/commit/0dee4c64e558bef54425373bdae65fe829a60eec))
+
 ## [0.2.0](https://github.com/Limozacloud/glance/compare/glance-v0.1.0...glance-v0.2.0) (2026-06-18)
 
 
