@@ -75,7 +75,7 @@ def available() -> bool:
     if sys.platform != "win32":
         return False
     for drive in local_drives():
-        h = _k32.CreateFileW(
+        h = _k32.CreateFileW(  # type: ignore[union-attr]
             f"\\\\.\\{drive}:",
             _GENERIC_READ,
             _FILE_SHARE_READ | _FILE_SHARE_WRITE,
@@ -85,7 +85,7 @@ def available() -> bool:
             None,
         )
         if h != ctypes.c_void_p(-1).value:
-            _k32.CloseHandle(h)
+            _k32.CloseHandle(h)  # type: ignore[union-attr]
             return True
     return False
 
@@ -106,7 +106,7 @@ def _scan_volume(
     Returns None on permission error / non-NTFS volume.
     """
     try:
-        h = _k32.CreateFileW(
+        h = _k32.CreateFileW(  # type: ignore[union-attr]
             f"\\\\.\\{drive}:",
             _GENERIC_READ,
             _FILE_SHARE_READ | _FILE_SHARE_WRITE,
@@ -133,7 +133,7 @@ def _scan_volume(
             ib = ctypes.create_string_buffer(
                 struct.pack("<QQQ", start_ref, 0, 0x7FFF_FFFF_FFFF_FFFF)
             )
-            ok = _k32.DeviceIoControl(
+            ok = _k32.DeviceIoControl(  # type: ignore[union-attr]
                 h,
                 _FSCTL_ENUM_USN_DATA,
                 ib,
@@ -144,9 +144,9 @@ def _scan_volume(
                 None,
             )
             if not ok:
-                if _k32.GetLastError() == _ERROR_HANDLE_EOF:
+                if _k32.GetLastError() == _ERROR_HANDLE_EOF:  # type: ignore[union-attr]
                     break
-                log.debug("mft: %s: DeviceIoControl error %d", drive, _k32.GetLastError())
+                log.debug("mft: %s: DeviceIoControl error %d", drive, _k32.GetLastError())  # type: ignore[union-attr]
                 return None
 
             data = out.raw[: br.value]
@@ -177,7 +177,7 @@ def _scan_volume(
 
                 off += rec_len
     finally:
-        _k32.CloseHandle(h)
+        _k32.CloseHandle(h)  # type: ignore[union-attr]
 
     log.debug("mft: %s: %d dirs, %d hits", drive, len(dir_map), len(hits))
     return dir_map, hits
