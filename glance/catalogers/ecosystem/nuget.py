@@ -1,4 +1,11 @@
-"""NuGet ecosystem cataloger — parses packages.config and *.packages.lock.json."""
+"""NuGet ecosystem cataloger.
+
+Parses three source types:
+- packages.config          — classic .NET Framework projects
+- *.packages.lock.json     — SDK-style lock files
+- *.deps.json              — deployed .NET apps (runtime dependency manifest);
+                             only entries with type="package" are NuGet packages
+"""
 
 from __future__ import annotations
 
@@ -13,8 +20,15 @@ class NugetCataloger(EcosystemCataloger):
     name = "nuget"
     source = Source.NUGET
 
+    def manifest_filenames(self) -> list[str]:
+        return ["packages.config", ".packages.lock.json", ".deps.json"]
+
     def _is_manifest(self, filename: str) -> bool:
-        return filename == "packages.config" or filename.endswith(".packages.lock.json")
+        return (
+            filename == "packages.config"
+            or filename.endswith(".packages.lock.json")
+            or filename.endswith(".deps.json")
+        )
 
     def _purl(self, name: str, version: str | None) -> str:
         v = version or "*"
@@ -23,6 +37,8 @@ class NugetCataloger(EcosystemCataloger):
     def _parse_manifest(self, path: str) -> list[tuple[str, str | None]]:
         if path.endswith(".packages.lock.json"):
             return self._parse_lock_json(path)
+        if path.endswith(".deps.json"):
+            return self._parse_deps_json(path)
         return self._parse_packages_config(path)
 
     def _parse_packages_config(self, path: str) -> list[tuple[str, str | None]]:
@@ -43,5 +59,21 @@ class NugetCataloger(EcosystemCataloger):
         for _framework, deps in data.get("dependencies", {}).items():
             for name, info in deps.items():
                 version = info.get("resolved")
+                results.append((name, version or None))
+        return results
+
+    def _parse_deps_json(self, path: str) -> list[tuple[str, str | None]]:
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            data = json.load(fh)
+        results: list[tuple[str, str | None]] = []
+        for entry, meta in data.get("libraries", {}).items():
+            if meta.get("type") != "package":
+                continue
+            # entry format: "PackageName/1.2.3"
+            if "/" in entry:
+                name, _, version = entry.partition("/")
+            else:
+                name, version = entry, None
+            if name:
                 results.append((name, version or None))
         return results
