@@ -23,8 +23,8 @@ import logging
 import time
 
 from .catalogers import ECOSYSTEM_CATALOGERS, PACKAGE_CATALOGERS, BinaryCataloger, expand_catalogers
-from .classifiers.linux_binary import default_classifiers
 from .classifiers.core.loader import load_classifier_file
+from .classifiers.linux_binary import default_classifiers
 from .config import Config, Engine, OnStaleDB
 from .correlate import OwnershipResolver, correlate
 from .discovery import discover_all
