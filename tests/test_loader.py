@@ -6,7 +6,7 @@ import pytest
 
 from glance import Config, scan
 from glance.catalogers.binary import BinaryCataloger
-from glance.catalogers.binary.loader import classifiers_from_dicts, load_classifier_file
+from glance.classifiers.core.loader import classifiers_from_dicts, load_classifier_file
 from glance.config import Engine
 from glance.models import ScanReport
 

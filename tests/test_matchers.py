@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from glance.catalogers.binary.classifiers import default_classifiers
-from glance.catalogers.binary.matchers import (
+from glance.classifiers.core.matchers import (
     Classifier,
     MatcherContext,
     any_of,
@@ -10,6 +9,7 @@ from glance.catalogers.binary.matchers import (
     elf_needed,
     is_elf,
 )
+from glance.classifiers.linux_binary import default_classifiers
 
 
 def _ctx(data: bytes, path: str = "/usr/bin/x") -> MatcherContext:
