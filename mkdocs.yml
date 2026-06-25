@@ -1,0 +1,36 @@
+site_name: glance
+site_description: Mini-SBOM scanner — installed packages + unmanaged binaries with PURL/CPE
+site_url: https://limozacloud.github.io/glance/
+repo_url: https://github.com/Limozacloud/glance
+repo_name: Limozacloud/glance
+
+theme:
+  name: readthedocs
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  - fenced_code
+
+plugins:
+  - search
+
+nav:
+  - Overview: index.md
+  - Usage:
+    - CLI: usage/cli.md
+    - Python API: usage/library.md
+    - Configuration: usage/config.md
+    - Output Formats: usage/outputs.md
+    - Catalogers & Groups: usage/catalogers.md
+  - Internals:
+    - Architecture: internals/architecture.md
+    - Binary Classifiers: internals/classifiers.md
+    - Ecosystem Parsers: internals/ecosystem.md
+    - Windows Catalogers: internals/windows.md
+  - Extending:
+    - Add a Classifier: extending/classifier.md
+    - Add a CPE Entry: extending/cpe-entry.md
+    - Add a Cataloger: extending/cataloger.md

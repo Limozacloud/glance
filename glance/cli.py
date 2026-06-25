@@ -9,7 +9,7 @@ import sys
 
 from . import __version__, scan
 from .config import Config, Engine
-from .output import report_to_dict, to_cyclonedx, to_native
+from .output import report_to_dict, to_cyclonedx, to_minimal, to_native
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -34,13 +34,21 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--catalogers",
         metavar="LIST",
-        help="Comma-separated catalogers to run (e.g. binary,rpm,dpkg,apk).",
+        help=(
+            "Comma-separated catalogers or groups to run. "
+            "Groups: software (dpkg/rpm/apk/registry), binary (binary/win_binary), "
+            "ecosystem (pip/go/npm/nuget/maven/gem), all. "
+            "Individual: dpkg, rpm, apk, registry, win_binary, binary, pip, go, npm, nuget, maven, gem."
+        ),
     )
     p.add_argument(
         "--format",
-        choices=["cyclonedx", "native"],
+        choices=["cyclonedx", "native", "minimal"],
         default="cyclonedx",
-        help="SBOM output format (default: cyclonedx).",
+        help=(
+            "SBOM output format (default: cyclonedx). "
+            "'minimal' emits a flat list of {name, version, purl, cpe, path, source}."
+        ),
     )
     p.add_argument("--output", "-o", metavar="FILE", help="Write the SBOM here (default: stdout).")
     p.add_argument("--report", metavar="FILE", help="Write the audit report JSON here.")
@@ -76,8 +84,11 @@ def main(argv: list[str] | None = None) -> int:
 
     result = scan(config)
 
+    document: dict | list
     if args.format == "cyclonedx":
         document = to_cyclonedx(result, __version__)
+    elif args.format == "minimal":
+        document = to_minimal(result)
     else:
         document = to_native(result)
     text = json.dumps(document, indent=2)

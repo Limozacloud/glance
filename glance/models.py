@@ -27,6 +27,13 @@ class Source(str, Enum):
     RPM = "rpm"
     DPKG = "dpkg"
     APK = "apk"
+    REGISTRY = "registry"
+    PIP = "pip"
+    GO = "go"
+    NPM = "npm"
+    NUGET = "nuget"
+    MAVEN = "maven"
+    GEM = "gem"
 
 
 class SkipReason(str, Enum):

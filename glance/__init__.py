@@ -22,7 +22,7 @@ from __future__ import annotations
 import logging
 import time
 
-from .catalogers import PACKAGE_CATALOGERS, BinaryCataloger
+from .catalogers import ECOSYSTEM_CATALOGERS, PACKAGE_CATALOGERS, BinaryCataloger, expand_catalogers
 from .catalogers.binary.classifiers import default_classifiers
 from .catalogers.binary.loader import load_classifier_file
 from .config import Config, Engine, OnStaleDB
@@ -64,18 +64,27 @@ def scan(config: Config | None = None) -> ScanResult:
     globs = config.file_globs or derive_globs(classifiers)
     gate = Gate(globs)
 
-    enabled: set[str] | None = set(config.catalogers) if config.catalogers is not None else None
+    raw_catalogers = expand_catalogers(config.catalogers) if config.catalogers is not None else None
+    enabled: set[str] | None = set(raw_catalogers) if raw_catalogers is not None else None
 
     components: list[Component] = []
     file_index: dict[str, str] = {}
     rpm_owner = None
 
     # 1) package catalogers (also feed ownership correlation)
+    from .catalogers.win_binary import WinBinaryCataloger as _WinBin
+
     for name, cataloger_cls in PACKAGE_CATALOGERS.items():
         if enabled is not None and name not in enabled:
             report.catalogers.append(CatalogerStatus(name, False, detail="disabled by config"))
             continue
-        cataloger = cataloger_cls()
+        if cataloger_cls is _WinBin:
+            cataloger = cataloger_cls(
+                extensions=config.win_pe_extensions,
+                engine=config.win_binary_engine,
+            )
+        else:
+            cataloger = cataloger_cls()
         if not cataloger.available():
             report.catalogers.append(
                 CatalogerStatus(name, False, detail="not available on this host")
@@ -101,6 +110,15 @@ def scan(config: Config | None = None) -> ScanResult:
         report.catalogers.append(CatalogerStatus("binary", True, len(correlated)))
     else:
         report.catalogers.append(CatalogerStatus("binary", False, detail="disabled by config"))
+
+    # 3) ecosystem catalogers (need include_paths to know where to walk)
+    eco_paths = config.include_paths or []
+    for name, cataloger_cls in ECOSYSTEM_CATALOGERS.items():
+        if enabled is not None and name not in enabled:
+            report.catalogers.append(CatalogerStatus(name, False, detail="disabled by config"))
+            continue
+        cataloger = cataloger_cls(paths=eco_paths)
+        components.extend(cataloger.catalog(report))
 
     report.duration_seconds = time.perf_counter() - start
     return ScanResult(components=components, report=report)

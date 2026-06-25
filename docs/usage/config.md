@@ -1,0 +1,106 @@
+# Configuration
+
+glance accepts a YAML or JSON config file (`--config FILE`) or `Config` object in code. All keys are optional.
+
+## Full reference
+
+```yaml
+# Paths to scan — the binary cataloger walks these for ELF/PE files;
+# ecosystem catalogers search here for lock files.
+# Default (Linux): ["/"]
+# Default (Windows): all mounted drive letters, e.g. ["C:\\", "D:\\", "E:\\"]
+include_paths:
+  - /opt
+  - /usr/lib64
+
+# Path prefixes to always skip.
+exclude_paths:
+  - /proc
+  - /sys
+  - /run
+
+# Filesystem types never scanned (prevents accidentally reading NFS mounts).
+exclude_fs_types:
+  - nfs
+  - cifs
+  - tmpfs
+  - overlay
+  - devtmpfs
+  - sysfs
+  - proc
+
+# Always walked directly, even if the locate DB prunes them.
+# These are cheap (small) and must never be missed.
+mandatory_paths:
+  - /usr/lib
+  - /usr/lib64
+  - /usr/local/lib
+  - /opt
+
+# Glob gate: which filenames are interesting at all.
+# null = derive automatically from classifier definitions (recommended).
+file_globs: null
+
+# Discovery engine for binary scanning (Linux).
+# auto: try plocate → mlocate → walk
+# plocate / mlocate / walk: force a specific engine
+engine: auto
+
+# If the locate DB is older than this, treat it as unusable (cascade to next engine).
+max_db_age_hours: 24
+
+# What to do when the DB is stale: fallback (cascade) or warn (use anyway).
+on_stale_db: fallback
+
+# Which catalogers to run. null = all applicable.
+# Accepts individual names or group aliases (software, binary, ecosystem, all).
+catalogers: null
+
+# Correlate binary finds against package DBs to mark them managed/unmanaged.
+correlate_ownership: true
+
+# Extra classifier YAML/JSON files loaded in addition to the built-ins.
+classifier_files: []
+
+# Skip content scan for files larger than this (bytes). Default: 200 MB.
+max_file_size: 209715200
+
+# Gate on ELF magic before running byte-regex scan.
+# Useful when include_paths contains many script files.
+elf_precheck: false
+
+# Hash each matched file. Adds sha256 to occurrences.
+compute_sha256: false
+
+# Logging level: DEBUG, INFO, WARNING, ERROR
+log_level: INFO
+```
+
+## Minimal example
+
+```yaml
+include_paths:
+  - /opt/apps
+catalogers:
+  - ecosystem
+  - binary
+```
+
+```bash
+glance --config my-scan.yaml --output sbom.json
+```
+
+## Config in code
+
+```python
+from glance import Config, Engine
+
+config = Config(
+    include_paths=["/opt/apps"],
+    catalogers=["ecosystem", "binary"],
+    engine=Engine.WALK,
+    max_db_age_hours=48,
+)
+```
+
+`Config` is a Python dataclass — every YAML key maps directly to a field.
