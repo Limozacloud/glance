@@ -13,6 +13,7 @@ from ..config import Config, Engine, OnStaleDB
 from ..models import ScanReport, SkipReason
 from . import engines, walk
 from .gate import Gate
+from .index import FileIndex
 
 log = logging.getLogger(__name__)
 
@@ -126,3 +127,71 @@ def discover(config: Config, gate: Gate, report: ScanReport) -> set[str]:
 
     report.files_considered = considered
     return candidates
+
+
+def discover_all(
+    config: Config, gate: Gate, extra_names: list[str], report: ScanReport
+) -> FileIndex:
+    """Single filesystem pass returning a FileIndex for binary + ecosystem catalogers."""
+    extra_gate = Gate(extra_names) if extra_names else None
+
+    excluded_prefixes = walk.excluded_mount_prefixes(config.exclude_fs_types)
+    all_paths: set[str] = set()
+    considered = 0
+
+    engine = _select_engine(config, report)
+
+    anchors, unanchored = engines.anchors_for(gate.globs)
+    if engine is not None and unanchored:
+        report.warnings.append(
+            f"{len(unanchored)} glob(s) have no literal anchor; using walk for completeness"
+        )
+        report.engine_cascade.append("un-anchorable globs present -> walk")
+        engine = None
+
+    extra_anchors = extra_names if extra_names else []
+
+    if engine is not None:
+        report.engine_used = engine.name
+        report.engine_reason = f"locate DB {engine.db_path}"
+        report.scanned_paths.append(f"{engine.name}:{engine.db_path}")
+        combined_anchors = list(anchors) + extra_anchors
+        for path in engines.query(engine, combined_anchors, config.locate_db_path):
+            considered += 1
+            skip = _scope_skip(path, config.exclude_paths, excluded_prefixes)
+            if skip is not None:
+                continue
+            if gate.matches(path) or (extra_gate and extra_gate.matches(path)):
+                all_paths.add(path)
+    else:
+        report.engine_used = "walk"
+        report.engine_reason = report.engine_reason or "no usable locate engine"
+        for root in config.include_paths:
+            report.scanned_paths.append(root)
+            for path in walk.walk_tree(
+                root,
+                follow_symlinks=config.follow_symlinks,
+                excluded_prefixes=excluded_prefixes,
+                exclude_paths=config.exclude_paths,
+                report=report,
+            ):
+                considered += 1
+                if gate.matches(path) or (extra_gate and extra_gate.matches(path)):
+                    all_paths.add(path)
+
+    for root in config.mandatory_paths:
+        report.mandatory_paths.append(root)
+        for path in walk.walk_tree(
+            root,
+            follow_symlinks=config.follow_symlinks,
+            excluded_prefixes=excluded_prefixes,
+            exclude_paths=config.exclude_paths,
+            report=report,
+            apply_scope=False,
+        ):
+            considered += 1
+            if gate.matches(path) or (extra_gate and extra_gate.matches(path)):
+                all_paths.add(path)
+
+    report.files_considered = considered
+    return FileIndex(all_paths)

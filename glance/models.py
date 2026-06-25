@@ -34,6 +34,7 @@ class Source(str, Enum):
     NUGET = "nuget"
     MAVEN = "maven"
     GEM = "gem"
+    DISTINFO = "distinfo"
 
 
 class SkipReason(str, Enum):

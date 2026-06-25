@@ -14,8 +14,8 @@ from __future__ import annotations
 
 import logging
 import sys
+from collections.abc import Callable
 from importlib.resources import files
-from typing import TYPE_CHECKING
 
 from ..models import CatalogerStatus, Component, ComponentType, Occurrence, ScanReport, Source
 from .custom.dotnet import HANDLES as _DOTNET_HANDLES
@@ -23,13 +23,10 @@ from .custom.dotnet import read as _dotnet_read
 from .custom.mssql import HANDLES as _MSSQL_HANDLES
 from .custom.mssql import read as _mssql_read
 
-_CUSTOM_READERS: list[tuple[frozenset[str], object]] = [
+_CUSTOM_READERS: list[tuple[frozenset[str], Callable[..., list[Component]]]] = [
     (frozenset(_MSSQL_HANDLES), _mssql_read),
     (frozenset(_DOTNET_HANDLES), _dotnet_read),
 ]
-
-if TYPE_CHECKING:
-    pass
 
 log = logging.getLogger(__name__)
 

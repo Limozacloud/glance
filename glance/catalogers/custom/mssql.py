@@ -23,10 +23,12 @@ def _fill(template: str, version: str) -> str:
 def _reg_str(key: object, value_name: str) -> str | None:
     try:
         import winreg
-        val, _ = winreg.QueryValueEx(key, value_name)
+
+        val, _ = winreg.QueryValueEx(key, value_name)  # type: ignore[attr-defined,arg-type]
         return str(val).strip() if val else None
     except OSError:
         return None
+
 
 HANDLES = {
     "sql_server_2012",
@@ -63,7 +65,7 @@ def _reg_str_at(winreg, hive: int, subkey: str, value_name: str) -> str | None:
 
 def read(winreg, index_by_id: dict) -> list[Component]:
     components: list[Component] = []
-    seen: set[str] = set()
+    seen: set[tuple[str, str, str]] = set()
 
     for inst_key_path in _INSTANCE_KEYS:
         wow = "WOW6432Node\\" if "WOW6432" in inst_key_path else ""
@@ -89,7 +91,8 @@ def read(winreg, index_by_id: dict) -> list[Component]:
                     continue
 
                 patch_level = _reg_str_at(
-                    winreg, _HKLM,
+                    winreg,
+                    _HKLM,
                     rf"SOFTWARE\{wow}Microsoft\Microsoft SQL Server\{reg_root}\Setup",
                     "PatchLevel",
                 )
@@ -103,20 +106,22 @@ def read(winreg, index_by_id: dict) -> list[Component]:
 
                 purl = _fill(entry["purl_template"], patch_level)
                 cpe = _fill(entry["cpe_template"], patch_level)
-                components.append(Component(
-                    name=entry["name"],
-                    version=patch_level,
-                    type=ComponentType.APPLICATION,
-                    source=Source.REGISTRY,
-                    purl=purl,
-                    cpes=[cpe],
-                    bom_ref=purl,
-                    managed=True,
-                    metadata={
-                        "display_name": f"SQL Server ({inst_name})",
-                        "instance": inst_name,
-                        "index_id": entry_id,
-                    },
-                ))
+                components.append(
+                    Component(
+                        name=entry["name"],
+                        version=patch_level,
+                        type=ComponentType.APPLICATION,
+                        source=Source.REGISTRY,
+                        purl=purl,
+                        cpes=[cpe],
+                        bom_ref=purl,
+                        managed=True,
+                        metadata={
+                            "display_name": f"SQL Server ({inst_name})",
+                            "instance": inst_name,
+                            "index_id": entry_id,
+                        },
+                    )
+                )
 
     return components
