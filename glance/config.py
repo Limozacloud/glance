@@ -65,12 +65,15 @@ DEFAULT_MANDATORY_PATHS = [
     "/opt",
 ]
 
+
 def _win_local_drives() -> list[str]:
     """Return fixed local drives only — excludes network, removable, CD-ROM."""
     import ctypes
+
     DRIVE_FIXED = 3
     return [
-        f"{d}:\\" for d in string.ascii_uppercase
+        f"{d}:\\"
+        for d in string.ascii_uppercase
         if os.path.exists(f"{d}:\\")
         and ctypes.windll.kernel32.GetDriveTypeW(f"{d}:\\") == DRIVE_FIXED  # type: ignore[attr-defined]
     ]

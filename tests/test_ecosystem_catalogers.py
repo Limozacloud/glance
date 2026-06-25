@@ -32,9 +32,11 @@ def _catalog(cataloger_cls, tmp_path: Path, files: dict[str, str]) -> list:
 
 
 def test_pip_requirements_txt(tmp_path):
-    comps = _catalog(PipCataloger, tmp_path, {
-        "requirements.txt": "requests==2.28.1\nflask>=2.0\n# comment\nnumpy==1.24.0\n"
-    })
+    comps = _catalog(
+        PipCataloger,
+        tmp_path,
+        {"requirements.txt": "requests==2.28.1\nflask>=2.0\n# comment\nnumpy==1.24.0\n"},
+    )
     names = {c.name: c.version for c in comps}
     assert names["requests"] == "2.28.1"
     assert names["numpy"] == "1.24.0"
@@ -59,17 +61,21 @@ def test_pip_pipfile_lock(tmp_path):
 
 
 def test_pip_skips_node_modules(tmp_path):
-    comps = _catalog(PipCataloger, tmp_path, {
-        "node_modules/somelib/requirements.txt": "requests==2.28.1\n"
-    })
+    comps = _catalog(
+        PipCataloger, tmp_path, {"node_modules/somelib/requirements.txt": "requests==2.28.1\n"}
+    )
     assert comps == []
 
 
 def test_pip_deduplicates(tmp_path):
-    comps = _catalog(PipCataloger, tmp_path, {
-        "app/requirements.txt": "requests==2.28.1\n",
-        "lib/requirements.txt": "requests==2.28.1\n",
-    })
+    comps = _catalog(
+        PipCataloger,
+        tmp_path,
+        {
+            "app/requirements.txt": "requests==2.28.1\n",
+            "lib/requirements.txt": "requests==2.28.1\n",
+        },
+    )
     assert len(comps) == 1
 
 

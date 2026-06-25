@@ -111,7 +111,9 @@ def read_versioninfo(path: str) -> dict[str, str]:
 
         lp = ctypes.c_void_p()
         ll = ctypes.c_uint()
-        if not ver.VerQueryValueW(buf, r"\VarFileInfo\Translation", ctypes.byref(lp), ctypes.byref(ll)):
+        if not ver.VerQueryValueW(
+            buf, r"\VarFileInfo\Translation", ctypes.byref(lp), ctypes.byref(ll)
+        ):
             return {}
         if ll.value < 4:
             return {}
@@ -121,7 +123,13 @@ def read_versioninfo(path: str) -> dict[str, str]:
         prefix = f"\\StringFileInfo\\{lang:04X}{cp:04X}\\"
 
         result: dict[str, str] = {}
-        for field in ("ProductName", "ProductVersion", "CompanyName", "FileDescription", "FileVersion"):
+        for field in (
+            "ProductName",
+            "ProductVersion",
+            "CompanyName",
+            "FileDescription",
+            "FileVersion",
+        ):
             vp = ctypes.c_void_p()
             vl = ctypes.c_uint()
             if ver.VerQueryValueW(buf, prefix + field, ctypes.byref(vp), ctypes.byref(vl)):
@@ -140,6 +148,7 @@ def _normalize_version(raw: str) -> str:
     then drops a trailing '.0' from 4-part versions ("3.0.13.0" → "3.0.13").
     """
     import re
+
     m = re.match(r"[\d]+(?:\.[\d]+)*", raw.strip())
     clean = m.group(0) if m else raw.strip()
     parts = clean.split(".")
@@ -156,7 +165,12 @@ def _load_binary_index() -> list[dict]:
         import yaml
     except ImportError as exc:
         raise ImportError("win_binary_index requires PyYAML — pip install glance[full]") from exc
-    text = files("glance").joinpath("data").joinpath("win_binary_index.yaml").read_text(encoding="utf-8")
+    text = (
+        files("glance")
+        .joinpath("data")
+        .joinpath("win_binary_index.yaml")
+        .read_text(encoding="utf-8")
+    )
     return yaml.safe_load(text).get("entries", [])
 
 

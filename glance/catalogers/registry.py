@@ -44,9 +44,7 @@ def _load_index() -> list[dict]:
     try:
         import yaml
     except ImportError as exc:
-        raise ImportError(
-            "win_cpe_index requires PyYAML — pip install glance[full]"
-        ) from exc
+        raise ImportError("win_cpe_index requires PyYAML — pip install glance[full]") from exc
     data_pkg = files("glance").joinpath("data")
     text = data_pkg.joinpath("win_cpe_index.yaml").read_text(encoding="utf-8")
     doc = yaml.safe_load(text)
@@ -176,6 +174,7 @@ class RegistryCataloger:
 def _reg_str(key: object, value_name: str) -> str | None:
     try:
         import winreg
+
         val, _ = winreg.QueryValueEx(key, value_name)
         return str(val).strip() if val else None
     except OSError:

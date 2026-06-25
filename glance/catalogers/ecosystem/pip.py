@@ -9,13 +9,23 @@ from ...models import Source
 from .base import EcosystemCataloger
 
 _REQ_LINE = re.compile(r"^([A-Za-z0-9][A-Za-z0-9._-]*)==([A-Za-z0-9._!+*-]+)", re.ASCII)
-_FILENAMES = frozenset({"requirements.txt", "requirements-dev.txt", "requirements-test.txt",
-                        "requirements-prod.txt", "Pipfile.lock"})
+_FILENAMES = frozenset(
+    {
+        "requirements.txt",
+        "requirements-dev.txt",
+        "requirements-test.txt",
+        "requirements-prod.txt",
+        "Pipfile.lock",
+    }
+)
 
 
 class PipCataloger(EcosystemCataloger):
     name = "pip"
     source = Source.PIP
+
+    def manifest_filenames(self) -> list[str]:
+        return list(_FILENAMES)
 
     def _is_manifest(self, filename: str) -> bool:
         return filename in _FILENAMES

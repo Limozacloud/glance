@@ -54,13 +54,13 @@ SMALL_INDEX = [
 @pytest.mark.parametrize(
     "raw,expected",
     [
-        ("3.0.13.0", "3.0.13"),         # 4-part trailing .0 stripped
-        ("1.2.3.4", "1.2.3.4"),         # 4-part, non-zero last → kept
-        ("8.7", "8.7"),                  # 2-part → unchanged
+        ("3.0.13.0", "3.0.13"),  # 4-part trailing .0 stripped
+        ("1.2.3.4", "1.2.3.4"),  # 4-part, non-zero last → kept
+        ("8.7", "8.7"),  # 2-part → unchanged
         ("1.64.0.0 (MSVC release)", "1.64.0"),  # suffix stripped, then trailing .0
-        ("2.48.1.windows.1", "2.48.1"), # non-numeric after first break
-        ("1.0.0.0", "1.0.0"),           # trailing .0 stripped
-        ("", ""),                        # empty → empty
+        ("2.48.1.windows.1", "2.48.1"),  # non-numeric after first break
+        ("1.0.0.0", "1.0.0"),  # trailing .0 stripped
+        ("", ""),  # empty → empty
     ],
 )
 def test_normalize_version(raw, expected):
@@ -99,6 +99,7 @@ def test_match_fails_unrelated():
 
 def test_real_binary_index_loads():
     from glance.catalogers.win_binary import _load_binary_index
+
     entries = _load_binary_index()
     assert len(entries) >= 10
     ids = {e["id"] for e in entries}
@@ -116,6 +117,7 @@ def test_real_binary_index_loads():
 
 def test_is_pe_true(tmp_path):
     from glance.catalogers.win_binary import _is_pe
+
     f = tmp_path / "test.dll"
     f.write_bytes(b"MZ" + b"\x00" * 100)
     assert _is_pe(str(f))
@@ -123,6 +125,7 @@ def test_is_pe_true(tmp_path):
 
 def test_is_pe_false_wrong_magic(tmp_path):
     from glance.catalogers.win_binary import _is_pe
+
     f = tmp_path / "test.dll"
     f.write_bytes(b"\x7fELF" + b"\x00" * 100)
     assert not _is_pe(str(f))
@@ -130,6 +133,7 @@ def test_is_pe_false_wrong_magic(tmp_path):
 
 def test_is_pe_false_missing_file():
     from glance.catalogers.win_binary import _is_pe
+
     assert not _is_pe("/does/not/exist.dll")
 
 
@@ -330,6 +334,7 @@ def test_catalog_missing_root_dir_skipped(tmp_path):
 
 def test_unavailable_on_non_windows():
     import sys
+
     cat = WinBinaryCataloger()
     with patch.object(sys, "platform", "linux"):
         assert not cat.available()

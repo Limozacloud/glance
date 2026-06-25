@@ -73,6 +73,7 @@ def scan(config: Config | None = None) -> ScanResult:
 
     # 1) package catalogers (also feed ownership correlation)
     from .catalogers.win_binary import WinBinaryCataloger as _WinBin
+
     for name, cataloger_cls in PACKAGE_CATALOGERS.items():
         if enabled is not None and name not in enabled:
             report.catalogers.append(CatalogerStatus(name, False, detail="disabled by config"))
