@@ -15,7 +15,6 @@ from glance.catalogers.ecosystem.nuget import NugetCataloger
 from glance.catalogers.ecosystem.pip import PipCataloger
 from glance.models import ScanReport, Source
 
-
 # ── helpers ───────────────────────────────────────────────────────────────────
 
 
