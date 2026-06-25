@@ -15,7 +15,6 @@ from __future__ import annotations
 import logging
 import sys
 from collections.abc import Callable
-from importlib.resources import files
 
 from ..models import CatalogerStatus, Component, ComponentType, Occurrence, ScanReport, Source
 from .custom.dotnet import HANDLES as _DOTNET_HANDLES
@@ -42,26 +41,33 @@ _UNINSTALL_KEYS = [
 ]
 
 
-def _load_index() -> list[dict]:
-    """Load and return the win_cpe_index.yaml entries (cached on first call)."""
+def _load_index(extension_file: str | None = None) -> list[dict]:
+    from ..classifiers.win_registry_data import WIN_REGISTRY_ENTRIES
+
+    entries = list(WIN_REGISTRY_ENTRIES)
+    if extension_file:
+        entries.extend(_load_extension(extension_file, "registry"))
+    return entries
+
+
+def _load_extension(path: str, section: str) -> list[dict]:
     try:
         import yaml
     except ImportError as exc:
-        raise ImportError("win_cpe_index requires PyYAML — pip install glance[full]") from exc
-    data_pkg = files("glance").joinpath("classifiers")
-    text = data_pkg.joinpath("win_registry_index.yaml").read_text(encoding="utf-8")
-    doc = yaml.safe_load(text)
-    return doc.get("entries", [])
+        raise ImportError("extension_file requires PyYAML — pip install pyyaml") from exc
+    import pathlib
+
+    doc = yaml.safe_load(pathlib.Path(path).read_text(encoding="utf-8")) or {}
+    return doc.get(section, {}).get("entries", [])
 
 
-_INDEX_CACHE: list[dict] | None = None
+_INDEX_CACHE: dict[str | None, list[dict]] = {}
 
 
-def _index() -> list[dict]:
-    global _INDEX_CACHE
-    if _INDEX_CACHE is None:
-        _INDEX_CACHE = _load_index()
-    return _INDEX_CACHE
+def _index(extension_file: str | None = None) -> list[dict]:
+    if extension_file not in _INDEX_CACHE:
+        _INDEX_CACHE[extension_file] = _load_index(extension_file)
+    return _INDEX_CACHE[extension_file]
 
 
 def _match(display_name: str, publisher: str, entry: dict) -> bool:
@@ -88,6 +94,9 @@ def _fill(template: str, version: str) -> str:
 class RegistryCataloger:
     name = "registry"
 
+    def __init__(self, extension_file: str | None = None) -> None:
+        self.extension_file = extension_file
+
     def available(self) -> bool:
         return sys.platform == "win32"
 
@@ -107,7 +116,7 @@ class RegistryCataloger:
             return []
 
         try:
-            index = _index()
+            index = _index(self.extension_file)
         except Exception as exc:
             report.catalogers.append(
                 CatalogerStatus(self.name, False, detail=f"failed to load CPE index: {exc}")

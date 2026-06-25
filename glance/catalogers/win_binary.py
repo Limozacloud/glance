@@ -19,7 +19,6 @@ import ctypes.wintypes
 import logging
 import os
 import sys
-from importlib.resources import files
 
 from ..models import CatalogerStatus, Component, ComponentType, Occurrence, ScanReport, Source
 
@@ -117,28 +116,29 @@ def _normalize_version(raw: str) -> str:
 # ── Index loading ─────────────────────────────────────────────────────────────
 
 
-def _load_binary_index() -> list[dict]:
-    try:
-        import yaml
-    except ImportError as exc:
-        raise ImportError("win_binary_index requires PyYAML — pip install glance[full]") from exc
-    text = (
-        files("glance")
-        .joinpath("classifiers")
-        .joinpath("win_binary_index.yaml")
-        .read_text(encoding="utf-8")
-    )
-    return yaml.safe_load(text).get("entries", [])
+def _load_binary_index(extension_file: str | None = None) -> list[dict]:
+    from ..classifiers.win_binary_data import WIN_BINARY_ENTRIES
+
+    entries = list(WIN_BINARY_ENTRIES)
+    if extension_file:
+        try:
+            import yaml
+        except ImportError as exc:
+            raise ImportError("extension_file requires PyYAML — pip install pyyaml") from exc
+        import pathlib
+
+        doc = yaml.safe_load(pathlib.Path(extension_file).read_text(encoding="utf-8")) or {}
+        entries.extend(doc.get("binary", {}).get("entries", []))
+    return entries
 
 
-_BINARY_INDEX_CACHE: list[dict] | None = None
+_BINARY_INDEX_CACHE: dict[str | None, list[dict]] = {}
 
 
-def _binary_index() -> list[dict]:
-    global _BINARY_INDEX_CACHE
-    if _BINARY_INDEX_CACHE is None:
-        _BINARY_INDEX_CACHE = _load_binary_index()
-    return _BINARY_INDEX_CACHE
+def _binary_index(extension_file: str | None = None) -> list[dict]:
+    if extension_file not in _BINARY_INDEX_CACHE:
+        _BINARY_INDEX_CACHE[extension_file] = _load_binary_index(extension_file)
+    return _BINARY_INDEX_CACHE[extension_file]
 
 
 # ── Matching ──────────────────────────────────────────────────────────────────
@@ -173,10 +173,12 @@ class WinBinaryCataloger:
         paths: list[str] | None = None,
         extensions: list[str] | None = None,
         engine: str = "auto",
+        extension_file: str | None = None,
     ) -> None:
         self.paths = paths or DEFAULT_WIN_PATHS
         self.extensions = frozenset(e.lower() for e in (extensions or DEFAULT_PE_EXTENSIONS))
         self.engine = engine  # "auto" | "mft" | "walk"
+        self.extension_file = extension_file
 
     def available(self) -> bool:
         return sys.platform == "win32"
@@ -216,7 +218,7 @@ class WinBinaryCataloger:
             return []
 
         try:
-            index = _binary_index()
+            index = _binary_index(self.extension_file)
         except Exception as exc:
             report.catalogers.append(
                 CatalogerStatus(self.name, False, detail=f"failed to load binary index: {exc}")

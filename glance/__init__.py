@@ -78,11 +78,16 @@ def scan(config: Config | None = None) -> ScanResult:
         if enabled is not None and name not in enabled:
             report.catalogers.append(CatalogerStatus(name, False, detail="disabled by config"))
             continue
+        from .catalogers.registry import RegistryCataloger as _Reg
+
         if cataloger_cls is _WinBin:
-            cataloger = cataloger_cls(
+            cataloger = cataloger_cls(  # type: ignore[assignment]
                 extensions=config.win_pe_extensions,
                 engine=config.win_binary_engine,
+                extension_file=config.extension_file,
             )
+        elif cataloger_cls is _Reg:
+            cataloger = cataloger_cls(extension_file=config.extension_file)  # type: ignore[assignment]
         else:
             cataloger = cataloger_cls()
         if not cataloger.available():
