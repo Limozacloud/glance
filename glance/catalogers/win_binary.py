@@ -4,12 +4,12 @@ Unlike the Linux binary cataloger (byte-regex on ELF), Windows PE binaries carry
 structured VERSIONINFO resources with ProductName, ProductVersion, and CompanyName.
 This gives reliable, unambiguous product identity without pattern guessing.
 
-Discovery engine cascade (mirrors Linux plocate/mlocate/walk):
-  1. Everything (es.exe) — millisecond-fast index query, if available
+Discovery engine cascade:
+  1. MFT (NTFS Master File Table) — fast, requires admin
   2. os.walk — full filesystem walk, always available as fallback
 
 Gate: file extension (configurable, default .dll/.exe/.sys) + MZ magic (2-byte read).
-Match: ProductName + CompanyName against ``glance/data/win_binary_index.yaml``.
+Match: ProductName + CompanyName against ``glance/classifiers/win_binary_index.yaml``.
 """
 
 from __future__ import annotations
@@ -18,8 +18,6 @@ import ctypes
 import ctypes.wintypes
 import logging
 import os
-import shutil
-import subprocess
 import sys
 from importlib.resources import files
 
@@ -37,52 +35,6 @@ DEFAULT_WIN_PATHS = [
     r"C:\Program Files (x86)",
     r"C:\ProgramData",
 ]
-
-#: Known locations for Voidtools Everything CLI (es.exe).
-_ES_SEARCH_PATHS = [
-    r"C:\Program Files\Everything\es.exe",
-    r"C:\Program Files (x86)\Everything\es.exe",
-]
-
-
-# ── Everything engine ────────────────────────────────────────────────────────
-
-
-def _find_es() -> str | None:
-    """Return path to es.exe if Everything is installed, else None."""
-    found = shutil.which("es")
-    if found:
-        return found
-    for candidate in _ES_SEARCH_PATHS:
-        if os.path.isfile(candidate):
-            return candidate
-    return None
-
-
-def _query_everything(es_path: str, extensions: frozenset[str], paths: list[str]) -> list[str]:
-    """Query Everything via es.exe and return matching file paths.
-
-    Uses the extension filter syntax: ext:dll;exe;sys
-    Scoped to each include_path via the path: filter.
-    """
-    ext_filter = ";".join(e.lstrip(".") for e in sorted(extensions))
-    results: list[str] = []
-    for root in paths:
-        # es.exe "ext:dll;exe;sys path:C:\Program Files"
-        query = f'ext:{ext_filter} path:"{root}"'
-        try:
-            out = subprocess.check_output(
-                [es_path, "-r", query],
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                timeout=30,
-            )
-            results.extend(line.strip() for line in out.splitlines() if line.strip())
-        except (subprocess.TimeoutExpired, subprocess.CalledProcessError, OSError) as exc:
-            log.debug("Everything query failed for %s: %s", root, exc)
-    return results
-
 
 # ── VERSIONINFO reader ────────────────────────────────────────────────────────
 
@@ -224,22 +176,26 @@ class WinBinaryCataloger:
     ) -> None:
         self.paths = paths or DEFAULT_WIN_PATHS
         self.extensions = frozenset(e.lower() for e in (extensions or DEFAULT_PE_EXTENSIONS))
-        self.engine = engine  # "auto" | "everything" | "walk"
+        self.engine = engine  # "auto" | "mft" | "walk"
 
     def available(self) -> bool:
         return sys.platform == "win32"
 
     def _discover(self, report: ScanReport) -> tuple[list[str], str]:
         """Return (candidate_paths, engine_used)."""
-        es = _find_es() if self.engine in ("auto", "everything") else None
+        if self.engine in ("auto", "mft"):
+            from ..discovery import mft as _mft
 
-        if es:
-            log.debug("win_binary: using Everything engine (%s)", es)
-            candidates = _query_everything(es, self.extensions, self.paths)
-            return candidates, "everything"
-
-        if self.engine == "everything":
-            log.warning("win_binary: Everything (es.exe) not found, falling back to walk")
+            if _mft.available():
+                drives = _mft.local_drives()
+                candidates = _mft.query(
+                    drives,
+                    extensions=list(self.extensions),
+                    scope_paths=self.paths,
+                )
+                return candidates, "mft"
+            if self.engine == "mft":
+                log.warning("win_binary: MFT not available (no admin?), falling back to walk")
 
         # walk fallback
         walk_candidates: list[str] = []
