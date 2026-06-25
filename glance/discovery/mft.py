@@ -15,13 +15,14 @@ import ctypes.wintypes
 import logging
 import struct
 import sys
+from typing import Any
 
 log = logging.getLogger(__name__)
 
 if sys.platform == "win32":
-    _k32 = ctypes.windll.kernel32
+    _k32: Any = ctypes.windll.kernel32
 else:
-    _k32 = None  # type: ignore[assignment]
+    _k32: Any = None
 
 _GENERIC_READ = 0x80000000
 _FILE_SHARE_READ = 0x1
@@ -75,7 +76,7 @@ def available() -> bool:
     if sys.platform != "win32":
         return False
     for drive in local_drives():
-        h = _k32.CreateFileW(  # type: ignore[union-attr]
+        h = _k32.CreateFileW(  # type: ignore[attr-defined]
             f"\\\\.\\{drive}:",
             _GENERIC_READ,
             _FILE_SHARE_READ | _FILE_SHARE_WRITE,
@@ -85,7 +86,7 @@ def available() -> bool:
             None,
         )
         if h != ctypes.c_void_p(-1).value:
-            _k32.CloseHandle(h)  # type: ignore[union-attr]
+            _k32.CloseHandle(h)  # type: ignore[attr-defined]
             return True
     return False
 
@@ -106,7 +107,7 @@ def _scan_volume(
     Returns None on permission error / non-NTFS volume.
     """
     try:
-        h = _k32.CreateFileW(  # type: ignore[union-attr]
+        h = _k32.CreateFileW(  # type: ignore[attr-defined]
             f"\\\\.\\{drive}:",
             _GENERIC_READ,
             _FILE_SHARE_READ | _FILE_SHARE_WRITE,
@@ -133,7 +134,7 @@ def _scan_volume(
             ib = ctypes.create_string_buffer(
                 struct.pack("<QQQ", start_ref, 0, 0x7FFF_FFFF_FFFF_FFFF)
             )
-            ok = _k32.DeviceIoControl(  # type: ignore[union-attr]
+            ok = _k32.DeviceIoControl(  # type: ignore[attr-defined]
                 h,
                 _FSCTL_ENUM_USN_DATA,
                 ib,
@@ -144,9 +145,9 @@ def _scan_volume(
                 None,
             )
             if not ok:
-                if _k32.GetLastError() == _ERROR_HANDLE_EOF:  # type: ignore[union-attr]
+                if _k32.GetLastError() == _ERROR_HANDLE_EOF:  # type: ignore[attr-defined]
                     break
-                log.debug("mft: %s: DeviceIoControl error %d", drive, _k32.GetLastError())  # type: ignore[union-attr]
+                log.debug("mft: %s: DeviceIoControl error %d", drive, _k32.GetLastError())  # type: ignore[attr-defined]
                 return None
 
             data = out.raw[: br.value]
@@ -177,7 +178,7 @@ def _scan_volume(
 
                 off += rec_len
     finally:
-        _k32.CloseHandle(h)  # type: ignore[union-attr]
+        _k32.CloseHandle(h)  # type: ignore[attr-defined]
 
     log.debug("mft: %s: %d dirs, %d hits", drive, len(dir_map), len(hits))
     return dir_map, hits
