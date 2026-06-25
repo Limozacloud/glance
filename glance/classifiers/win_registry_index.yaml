@@ -215,8 +215,19 @@ entries:
     publisher_contains:
       - "Microsoft"
     name: dotnet
+    skip_uninstall: true
     cpe_template: "cpe:2.3:a:microsoft:.net:{version}:*:*:*:*:*:*:*"
     purl_template: "pkg:generic/dotnet@{version}"
+
+  - id: dotnet_framework
+    display_name_contains:
+      - "Microsoft .NET Framework"
+    publisher_contains:
+      - "Microsoft"
+    name: dotnet-framework
+    skip_uninstall: true
+    cpe_template: "cpe:2.3:a:microsoft:.net_framework:{version}:*:*:*:*:*:*:*"
+    purl_template: "pkg:generic/dotnet-framework@{version}"
 
   # ── Microsoft Products ────────────────────────────────────────────────────────
 
@@ -246,7 +257,8 @@ entries:
     publisher_contains:
       - "Microsoft"
     name: sql-server-2012
-    cpe_template: "cpe:2.3:a:microsoft:sql_server:2012:*:*:*:*:*:-:*"
+    skip_uninstall: true
+    cpe_template: "cpe:2.3:a:microsoft:sql_server:{version}:*:*:*:*:*:*:*"
     purl_template: "pkg:generic/sql-server@{version}"
 
   - id: sql_server_2014
@@ -256,7 +268,8 @@ entries:
     publisher_contains:
       - "Microsoft"
     name: sql-server-2014
-    cpe_template: "cpe:2.3:a:microsoft:sql_server:2014:*:*:*:*:*:-:*"
+    skip_uninstall: true
+    cpe_template: "cpe:2.3:a:microsoft:sql_server:{version}:*:*:*:*:*:*:*"
     purl_template: "pkg:generic/sql-server@{version}"
 
   - id: sql_server_2016
@@ -266,7 +279,8 @@ entries:
     publisher_contains:
       - "Microsoft"
     name: sql-server-2016
-    cpe_template: "cpe:2.3:a:microsoft:sql_server:2016:*:*:*:*:*:-:*"
+    skip_uninstall: true
+    cpe_template: "cpe:2.3:a:microsoft:sql_server:{version}:*:*:*:*:*:*:*"
     purl_template: "pkg:generic/sql-server@{version}"
 
   - id: sql_server_2017
@@ -276,7 +290,8 @@ entries:
     publisher_contains:
       - "Microsoft"
     name: sql-server-2017
-    cpe_template: "cpe:2.3:a:microsoft:sql_server:2017:*:*:*:*:*:-:*"
+    skip_uninstall: true
+    cpe_template: "cpe:2.3:a:microsoft:sql_server:{version}:*:*:*:*:*:*:*"
     purl_template: "pkg:generic/sql-server@{version}"
 
   - id: sql_server_2019
@@ -286,7 +301,8 @@ entries:
     publisher_contains:
       - "Microsoft"
     name: sql-server-2019
-    cpe_template: "cpe:2.3:a:microsoft:sql_server_2019:{version}:*:*:*:*:*:*:*"
+    skip_uninstall: true
+    cpe_template: "cpe:2.3:a:microsoft:sql_server:{version}:*:*:*:*:*:*:*"
     purl_template: "pkg:generic/sql-server@{version}"
 
   - id: sql_server_2022
@@ -296,7 +312,8 @@ entries:
     publisher_contains:
       - "Microsoft"
     name: sql-server-2022
-    cpe_template: "cpe:2.3:a:microsoft:sql_server_2022:{version}:*:*:*:*:*:*:*"
+    skip_uninstall: true
+    cpe_template: "cpe:2.3:a:microsoft:sql_server:{version}:*:*:*:*:*:*:*"
     purl_template: "pkg:generic/sql-server@{version}"
 
   - id: azure_data_studio
@@ -329,8 +346,10 @@ entries:
 
   - id: microsoft_sharepoint
     display_name_contains:
-      - "Microsoft SharePoint"
-      - "SharePoint Server"
+      - "Microsoft SharePoint Server"
+      - "Microsoft Office SharePoint Server"
+      - "Microsoft SharePoint Foundation"
+      - "Microsoft Windows SharePoint Services"
       - "SharePoint Enterprise Server"
     publisher_contains:
       - "Microsoft"
@@ -362,7 +381,7 @@ entries:
     publisher_contains:
       - "Microsoft"
     name: microsoft-office-2013
-    cpe_template: "cpe:2.3:a:microsoft:office_2013:{version}:*:*:*:*:*:*:*"
+    cpe_template: "cpe:2.3:a:microsoft:office:{version}:*:*:*:*:*:*:*"
     purl_template: "pkg:generic/microsoft-office-2013@{version}"
 
   - id: microsoft_office_2016
@@ -583,7 +602,19 @@ entries:
 
   - id: python
     display_name_contains:
-      - "Python"
+      - "Python 2."
+      - "Python 3."
+    display_name_not_contains:
+      - "Core Interpreter"
+      - "Standard Library"
+      - "Executables"
+      - "Test Suite"
+      - "Documentation"
+      - "Add to Path"
+      - "Tcl/Tk Support"
+      - "pip Bootstrap"
+      - "Development Libraries"
+      - "Launcher"
     publisher_contains:
       - "Python Software Foundation"
     name: python

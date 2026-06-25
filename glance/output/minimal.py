@@ -8,6 +8,12 @@ from ..models import ScanResult
 def to_minimal(result: ScanResult) -> list[dict]:
     out = []
     for c in result.components:
+        # skip correlate app-container placeholders (name=path, no version/purl)
+        if c.version is None and c.purl is None and not c.cpes:
+            continue
+        # skip unresolved ecosystem deps (version wildcard * — no VDB match possible)
+        if c.version is None:
+            continue
         path = c.occurrences[0].path if c.occurrences else None
         entry: dict = {"name": c.name, "version": c.version, "purl": c.purl}
         if c.cpes:

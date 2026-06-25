@@ -172,7 +172,7 @@ def _load_binary_index() -> list[dict]:
         raise ImportError("win_binary_index requires PyYAML — pip install glance[full]") from exc
     text = (
         files("glance")
-        .joinpath("data")
+        .joinpath("classifiers")
         .joinpath("win_binary_index.yaml")
         .read_text(encoding="utf-8")
     )

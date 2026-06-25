@@ -11,7 +11,7 @@ version field; both are rendered once a concrete version is extracted.
 
 from __future__ import annotations
 
-from .matchers import (
+from .core.matchers import (
     Classifier,
     all_of,
     any_of,
