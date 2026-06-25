@@ -43,7 +43,7 @@ def test_gate_dedup_and_match():
 
 
 def test_derive_globs_from_classifiers():
-    from glance.catalogers.binary.classifiers import default_classifiers
+    from glance.classifiers.linux_binary import default_classifiers
 
     globs = derive_globs(default_classifiers())
     assert "**/openssl" in globs
