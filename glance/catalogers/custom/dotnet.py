@@ -29,7 +29,7 @@ _SHARED_FW_KEYS = [
 # NDP subkeys to check for .NET Framework; v4\Full is the authoritative 4.x entry
 _NDP_PATHS = [
     (r"SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full", "4"),
-    (r"SOFTWARE\Microsoft\NET Framework Setup\NDP\v3.5",   "3.5"),
+    (r"SOFTWARE\Microsoft\NET Framework Setup\NDP\v3.5", "3.5"),
     (r"SOFTWARE\Microsoft\NET Framework Setup\NDP\v2.0.50727", "2.0"),
 ]
 
@@ -82,20 +82,22 @@ def _read_runtime(winreg, entry: dict, components: list, seen: set) -> None:
                         seen.add(version)
                         purl = _fill(entry["purl_template"], version)
                         cpe = _fill(entry["cpe_template"], version)
-                        components.append(Component(
-                            name=entry["name"],
-                            version=version,
-                            type=ComponentType.APPLICATION,
-                            source=Source.REGISTRY,
-                            purl=purl,
-                            cpes=[cpe],
-                            bom_ref=purl,
-                            managed=True,
-                            metadata={
-                                "display_name": f".NET Runtime {version}",
-                                "index_id": "dotnet_runtime",
-                            },
-                        ))
+                        components.append(
+                            Component(
+                                name=entry["name"],
+                                version=version,
+                                type=ComponentType.APPLICATION,
+                                source=Source.REGISTRY,
+                                purl=purl,
+                                cpes=[cpe],
+                                bom_ref=purl,
+                                managed=True,
+                                metadata={
+                                    "display_name": f".NET Runtime {version}",
+                                    "index_id": "dotnet_runtime",
+                                },
+                            )
+                        )
 
 
 def _read_framework(winreg, entry: dict, components: list, seen: set) -> None:
@@ -109,20 +111,22 @@ def _read_framework(winreg, entry: dict, components: list, seen: set) -> None:
         seen.add(version)
         purl = _fill(entry["purl_template"], version)
         cpe = _fill(entry["cpe_template"], version)
-        components.append(Component(
-            name=entry["name"],
-            version=version,
-            type=ComponentType.APPLICATION,
-            source=Source.REGISTRY,
-            purl=purl,
-            cpes=[cpe],
-            bom_ref=purl,
-            managed=True,
-            metadata={
-                "display_name": f".NET Framework {version}",
-                "index_id": "dotnet_framework",
-            },
-        ))
+        components.append(
+            Component(
+                name=entry["name"],
+                version=version,
+                type=ComponentType.APPLICATION,
+                source=Source.REGISTRY,
+                purl=purl,
+                cpes=[cpe],
+                bom_ref=purl,
+                managed=True,
+                metadata={
+                    "display_name": f".NET Framework {version}",
+                    "index_id": "dotnet_framework",
+                },
+            )
+        )
 
 
 def read(winreg, index_by_id: dict) -> list[Component]:
