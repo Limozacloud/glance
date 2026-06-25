@@ -24,10 +24,7 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
-_UNINSTALL_PATHS = [
-    # (hive_constant, subkey)
-    # populated at runtime after winreg is imported
-]
+_UNINSTALL_PATHS: list[tuple[int, str]] = []
 
 _HKLM = 0x80000002
 _HKCU = 0x80000001
@@ -108,24 +105,24 @@ class RegistryCataloger:
             )
             return []
 
-        seen: set[str] = set()
+        seen: set[tuple[str, str]] = set()
         components: list[Component] = []
 
         for hive, subkey in _UNINSTALL_KEYS:
             try:
-                root_key = winreg.OpenKey(hive, subkey)
+                root_key = winreg.OpenKey(hive, subkey)  # type: ignore[attr-defined]
             except OSError:
                 continue
             with root_key:
                 i = 0
                 while True:
                     try:
-                        child_name = winreg.EnumKey(root_key, i)
+                        child_name = winreg.EnumKey(root_key, i)  # type: ignore[attr-defined]
                     except OSError:
                         break
                     i += 1
                     try:
-                        child_key = winreg.OpenKey(root_key, child_name)
+                        child_key = winreg.OpenKey(root_key, child_name)  # type: ignore[attr-defined]
                     except OSError:
                         continue
                     with child_key:
@@ -171,11 +168,11 @@ class RegistryCataloger:
         return {}
 
 
-def _reg_str(key: object, value_name: str) -> str | None:
+def _reg_str(key: object, value_name: str) -> str | None:  # type: ignore[misc]
     try:
         import winreg
 
-        val, _ = winreg.QueryValueEx(key, value_name)
+        val, _ = winreg.QueryValueEx(key, value_name)  # type: ignore[attr-defined,arg-type]
         return str(val).strip() if val else None
     except OSError:
         return None

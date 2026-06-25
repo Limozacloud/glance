@@ -84,6 +84,7 @@ def main(argv: list[str] | None = None) -> int:
 
     result = scan(config)
 
+    document: dict | list
     if args.format == "cyclonedx":
         document = to_cyclonedx(result, __version__)
     elif args.format == "minimal":

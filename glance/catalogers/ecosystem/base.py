@@ -57,7 +57,8 @@ class EcosystemCataloger:
         """Return list of (name, version_or_None) tuples."""
         ...
 
-    def _purl(self, name: str, version: str | None) -> str: ...
+    def _purl(self, name: str, version: str | None) -> str:
+        raise NotImplementedError
 
     def _make_component(self, name: str, version: str | None, manifest_path: str) -> Component:
         purl = self._purl(name, version)
@@ -171,15 +172,18 @@ class EcosystemCataloger:
         When *index* is provided (a FileIndex from discover_all), queries it
         directly. Otherwise falls back to locate/MFT/walk.
         """
+        candidates: list[str]
         if index is not None:
             candidates = self._index_candidates(index)
             engine_used = "index"
         else:
-            candidates = self._locate_candidates()
+            _located = self._locate_candidates()
             engine_used = "locate"
-            if candidates is None:
+            if _located is None:
                 candidates = self._walk_candidates()
                 engine_used = "walk"
+            else:
+                candidates = _located
 
         components: list[Component] = []
         seen: set[tuple[str, str]] = set()

@@ -117,6 +117,8 @@ def read_versioninfo(path: str) -> dict[str, str]:
             return {}
         if ll.value < 4:
             return {}
+        if lp.value is None:
+            return {}
         raw = ctypes.string_at(lp.value, ll.value)
         lang = int.from_bytes(raw[0:2], "little")
         cp = int.from_bytes(raw[2:4], "little")
@@ -132,7 +134,10 @@ def read_versioninfo(path: str) -> dict[str, str]:
         ):
             vp = ctypes.c_void_p()
             vl = ctypes.c_uint()
-            if ver.VerQueryValueW(buf, prefix + field, ctypes.byref(vp), ctypes.byref(vl)):
+            if (
+                ver.VerQueryValueW(buf, prefix + field, ctypes.byref(vp), ctypes.byref(vl))
+                and vp.value is not None
+            ):
                 s = ctypes.wstring_at(vp.value, vl.value).rstrip("\x00").strip()
                 if s:
                     result[field] = s
@@ -237,15 +242,15 @@ class WinBinaryCataloger:
             log.warning("win_binary: Everything (es.exe) not found, falling back to walk")
 
         # walk fallback
-        candidates: list[str] = []
+        walk_candidates: list[str] = []
         for root_path in self.paths:
             if not os.path.isdir(root_path):
                 continue
             for dirpath, _dirs, filenames in os.walk(root_path):
                 for fname in filenames:
                     if os.path.splitext(fname)[1].lower() in self.extensions:
-                        candidates.append(os.path.join(dirpath, fname))
-        return candidates, "walk"
+                        walk_candidates.append(os.path.join(dirpath, fname))
+        return walk_candidates, "walk"
 
     def catalog(self, report: ScanReport) -> list[Component]:
         if not self.available():
