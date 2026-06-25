@@ -23,11 +23,11 @@ import logging
 import time
 
 from .catalogers import ECOSYSTEM_CATALOGERS, PACKAGE_CATALOGERS, BinaryCataloger, expand_catalogers
-from .catalogers.binary.classifiers import default_classifiers
-from .catalogers.binary.loader import load_classifier_file
+from .classifiers.linux_binary import default_classifiers
+from .classifiers.core.loader import load_classifier_file
 from .config import Config, Engine, OnStaleDB
 from .correlate import OwnershipResolver, correlate
-from .discovery import discover
+from .discovery import discover_all
 from .discovery.gate import Gate, derive_globs
 from .models import CatalogerStatus, Component, ScanReport, ScanResult
 
@@ -98,10 +98,21 @@ def scan(config: Config | None = None) -> ScanResult:
         if callable(owner_fn):
             rpm_owner = owner_fn
 
-    # 2) binary cataloger + correlation
+    # 2+3) unified discovery — one filesystem pass for binary + all ecosystem catalogers
+    eco_paths = config.include_paths or []
+    eco_catalogers = {
+        name: cataloger_cls(paths=eco_paths, config=config)
+        for name, cataloger_cls in ECOSYSTEM_CATALOGERS.items()
+        if enabled is None or name in enabled
+    }
+    extra_names: list[str] = [
+        n for cat in eco_catalogers.values() for n in cat.manifest_filenames()
+    ]
+
     if enabled is None or "binary" in enabled:
-        candidates = discover(config, gate, report)
-        binary_components = BinaryCataloger(classifiers).catalog(candidates, config, report)
+        file_idx = discover_all(config, gate, extra_names, report)
+        binary_candidates = file_idx.matching_gate(gate)
+        binary_components = BinaryCataloger(classifiers).catalog(binary_candidates, config, report)
         resolver = OwnershipResolver(file_index, rpm_owner)
         correlated = correlate(
             binary_components, resolver, report, enabled=config.correlate_ownership
@@ -110,15 +121,17 @@ def scan(config: Config | None = None) -> ScanResult:
         report.catalogers.append(CatalogerStatus("binary", True, len(correlated)))
     else:
         report.catalogers.append(CatalogerStatus("binary", False, detail="disabled by config"))
+        file_idx = discover_all(config, gate, extra_names, report)
 
-    # 3) ecosystem catalogers (need include_paths to know where to walk)
-    eco_paths = config.include_paths or []
-    for name, cataloger_cls in ECOSYSTEM_CATALOGERS.items():
+    for name, cataloger in eco_catalogers.items():
         if enabled is not None and name not in enabled:
             report.catalogers.append(CatalogerStatus(name, False, detail="disabled by config"))
             continue
-        cataloger = cataloger_cls(paths=eco_paths)
-        components.extend(cataloger.catalog(report))
+        components.extend(cataloger.catalog(report, index=file_idx))
+
+    for name in ECOSYSTEM_CATALOGERS:
+        if name not in eco_catalogers and (enabled is not None and name not in enabled):
+            report.catalogers.append(CatalogerStatus(name, False, detail="disabled by config"))
 
     report.duration_seconds = time.perf_counter() - start
     return ScanResult(components=components, report=report)

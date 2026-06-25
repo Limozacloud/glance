@@ -24,6 +24,7 @@ CATALOGER_GROUPS: dict[str, list[str]] = {
     "software": ["dpkg", "rpm", "apk", "registry"],
     "binary": ["binary", "win_binary"],
     "ecosystem": list(ECOSYSTEM_CATALOGERS),
+    "installed": ["dpkg", "rpm", "apk", "registry", "win_binary", "distinfo"],
     "all": ["dpkg", "rpm", "apk", "registry", "binary", "win_binary"] + list(ECOSYSTEM_CATALOGERS),
 }
 

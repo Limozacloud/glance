@@ -87,7 +87,7 @@ else:
 
 @dataclass
 class Config:
-    """All knobs for a scan. See ``glance/data/default_config.yaml`` for docs."""
+    """All knobs for a scan. See ``glance/default_config.yaml`` for docs."""
 
     # --- scope -----------------------------------------------------------------
     include_paths: list[str] = field(default_factory=lambda: list(DEFAULT_INCLUDE_PATHS))

@@ -19,8 +19,8 @@ import re
 from ... import _glob
 from ...config import Config
 from ...models import Component, ComponentType, Occurrence, ScanReport, SkipReason, Source
-from .classifiers import default_classifiers
-from .matchers import Classifier, MatcherContext, MatchResult, is_elf
+from ...classifiers.linux_binary import default_classifiers
+from ...classifiers.core.matchers import Classifier, MatcherContext, MatchResult, is_elf
 
 log = logging.getLogger(__name__)
 

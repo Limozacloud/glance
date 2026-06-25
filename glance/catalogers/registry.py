@@ -17,7 +17,16 @@ import sys
 from importlib.resources import files
 from typing import TYPE_CHECKING
 
-from ..models import CatalogerStatus, Component, ComponentType, ScanReport, Source
+from ..models import CatalogerStatus, Component, ComponentType, Occurrence, ScanReport, Source
+from .custom.dotnet import HANDLES as _DOTNET_HANDLES
+from .custom.dotnet import read as _dotnet_read
+from .custom.mssql import HANDLES as _MSSQL_HANDLES
+from .custom.mssql import read as _mssql_read
+
+_CUSTOM_READERS: list[tuple[frozenset[str], object]] = [
+    (frozenset(_MSSQL_HANDLES), _mssql_read),
+    (frozenset(_DOTNET_HANDLES), _dotnet_read),
+]
 
 if TYPE_CHECKING:
     pass
@@ -42,8 +51,8 @@ def _load_index() -> list[dict]:
         import yaml
     except ImportError as exc:
         raise ImportError("win_cpe_index requires PyYAML — pip install glance[full]") from exc
-    data_pkg = files("glance").joinpath("data")
-    text = data_pkg.joinpath("win_cpe_index.yaml").read_text(encoding="utf-8")
+    data_pkg = files("glance").joinpath("classifiers")
+    text = data_pkg.joinpath("win_registry_index.yaml").read_text(encoding="utf-8")
     doc = yaml.safe_load(text)
     return doc.get("entries", [])
 
@@ -63,6 +72,9 @@ def _match(display_name: str, publisher: str, entry: dict) -> bool:
     dn_lower = display_name.lower()
     patterns: list[str] = entry.get("display_name_contains") or []
     if not any(p.lower() in dn_lower for p in patterns):
+        return False
+    exclude: list[str] = entry.get("display_name_not_contains") or []
+    if any(p.lower() in dn_lower for p in exclude):
         return False
     pub_patterns: list[str] = entry.get("publisher_contains") or []
     if pub_patterns:
@@ -105,6 +117,9 @@ class RegistryCataloger:
             )
             return []
 
+        index_by_id = {e["id"]: e for e in index}
+        skip_ids = frozenset(e["id"] for e in index if e.get("skip_uninstall"))
+
         seen: set[tuple[str, str]] = set()
         components: list[Component] = []
 
@@ -131,6 +146,7 @@ class RegistryCataloger:
                             continue
                         publisher = _reg_str(child_key, "Publisher") or ""
                         version = _reg_str(child_key, "DisplayVersion") or ""
+                        install_location = _reg_str(child_key, "InstallLocation") or ""
 
                     dedup_key = (display_name.lower(), version.lower())
                     if dedup_key in seen:
@@ -140,6 +156,8 @@ class RegistryCataloger:
                     for entry in index:
                         if not _match(display_name, publisher, entry):
                             continue
+                        if entry["id"] in skip_ids:
+                            break  # handled by custom reader
                         purl = _fill(entry["purl_template"], version)
                         cpe = _fill(entry["cpe_template"], version)
                         components.append(
@@ -152,6 +170,9 @@ class RegistryCataloger:
                                 cpes=[cpe],
                                 bom_ref=purl,
                                 managed=True,
+                                occurrences=[Occurrence(path=install_location, found_by="registry")]
+                                if install_location
+                                else [],
                                 metadata={
                                     "display_name": display_name,
                                     "publisher": publisher,
@@ -160,6 +181,12 @@ class RegistryCataloger:
                             )
                         )
                         break  # first match wins
+
+        invoked: set[int] = set()
+        for handles, fn in _CUSTOM_READERS:
+            if handles & skip_ids and id(fn) not in invoked:
+                components.extend(fn(winreg, index_by_id))
+                invoked.add(id(fn))
 
         report.catalogers.append(CatalogerStatus(self.name, True, len(components)))
         return components

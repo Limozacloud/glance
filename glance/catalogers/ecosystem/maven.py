@@ -1,4 +1,11 @@
-"""Maven ecosystem cataloger — parses pom.xml."""
+"""Maven ecosystem cataloger — parses pom.xml.
+
+# TODO: Switch to reading ~/.m2/repository/ (install store) instead of pom.xml.
+# pom.xml dependencies without a <version> inherit it from a parent BOM which
+# glance does not resolve — those emit version="*". The .m2 local repo contains
+# only downloaded artifacts with the exact version encoded in the directory path
+# (e.g. .m2/repository/org/apache/commons/commons-lang3/3.13.0/...).
+"""
 
 from __future__ import annotations
 
@@ -20,6 +27,9 @@ def _text(el: ET.Element | None) -> str | None:
 class MavenCataloger(EcosystemCataloger):
     name = "maven"
     source = Source.MAVEN
+
+    def manifest_filenames(self) -> list[str]:
+        return ["pom.xml"]
 
     def _is_manifest(self, filename: str) -> bool:
         return filename == "pom.xml"
