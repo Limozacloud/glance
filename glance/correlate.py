@@ -111,9 +111,12 @@ def correlate(
 
         for occ in comp.occurrences:
             owner = resolver.resolve(occ.path) if enabled else None
-            if owner and _same_product(comp.name, owner):
+            if owner and (
+                _same_product(comp.name, owner)
+                or _is_system_dir(os.path.dirname(occ.path))
+            ):
                 report.correlations.append(
-                    f"{occ.path} -> managed by {owner} (same product, suppressed; "
+                    f"{occ.path} -> managed by {owner} (suppressed; "
                     f"classifier={occ.found_by})"
                 )
             elif owner:

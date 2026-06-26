@@ -1,10 +1,11 @@
 """NuGet ecosystem cataloger.
 
-Parses three source types:
+Parses four source types:
 - packages.config          — classic .NET Framework projects
 - *.packages.lock.json     — SDK-style lock files
 - *.deps.json              — deployed .NET apps (runtime dependency manifest);
                              only entries with type="package" are NuGet packages
+- *.csproj                 — SDK-style project files (<PackageReference>)
 """
 
 from __future__ import annotations
@@ -21,13 +22,14 @@ class NugetCataloger(EcosystemCataloger):
     source = Source.NUGET
 
     def manifest_filenames(self) -> list[str]:
-        return ["packages.config", ".packages.lock.json", ".deps.json"]
+        return ["packages.config", ".packages.lock.json", ".deps.json", ".csproj"]
 
     def _is_manifest(self, filename: str) -> bool:
         return (
             filename == "packages.config"
             or filename.endswith(".packages.lock.json")
             or filename.endswith(".deps.json")
+            or filename.endswith(".csproj")
         )
 
     def _purl(self, name: str, version: str | None) -> str:
@@ -39,6 +41,8 @@ class NugetCataloger(EcosystemCataloger):
             return self._parse_lock_json(path)
         if path.endswith(".deps.json"):
             return self._parse_deps_json(path)
+        if path.endswith(".csproj"):
+            return self._parse_csproj(path)
         return self._parse_packages_config(path)
 
     def _parse_packages_config(self, path: str) -> list[tuple[str, str | None]]:
@@ -60,6 +64,22 @@ class NugetCataloger(EcosystemCataloger):
             for name, info in deps.items():
                 version = info.get("resolved")
                 results.append((name, version or None))
+        return results
+
+    def _parse_csproj(self, path: str) -> list[tuple[str, str | None]]:
+        tree = ET.parse(path)
+        root = tree.getroot()
+        results: list[tuple[str, str | None]] = []
+        for ref in root.iter("PackageReference"):
+            name = ref.get("Include")
+            if not name:
+                continue
+            version = ref.get("Version") or ref.get("version")
+            if version is None:
+                child = ref.find("Version")
+                if child is not None:
+                    version = child.text
+            results.append((name, version or None))
         return results
 
     def _parse_deps_json(self, path: str) -> list[tuple[str, str | None]]:
