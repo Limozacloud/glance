@@ -87,7 +87,7 @@ else:
 
 @dataclass
 class Config:
-    """All knobs for a scan. See ``glance/data/default_config.yaml`` for docs."""
+    """All knobs for a scan. See ``glance/default_config.yaml`` for docs."""
 
     # --- scope -----------------------------------------------------------------
     include_paths: list[str] = field(default_factory=lambda: list(DEFAULT_INCLUDE_PATHS))
@@ -113,6 +113,10 @@ class Config:
     #: Extra binary-classifier definition files (YAML/JSON) loaded in addition to
     #: the built-ins — add classifiers without touching code.
     classifier_files: list[str] = field(default_factory=list)
+    #: Optional YAML extension file with registry/binary index entries.
+    #: Format: registry.entries / binary.entries  (list of index dicts).
+    #: PyYAML is only imported when this is set.
+    extension_file: str | None = None
 
     # --- Windows PE binary scan ------------------------------------------------
     #: File extensions considered for Windows PE binary scanning.

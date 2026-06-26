@@ -53,6 +53,12 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument("--output", "-o", metavar="FILE", help="Write the SBOM here (default: stdout).")
     p.add_argument("--report", metavar="FILE", help="Write the audit report JSON here.")
     p.add_argument("--log-level", default=None, help="Logging level (default: from config).")
+    p.add_argument(
+        "--extension-file",
+        metavar="FILE",
+        default=None,
+        help="YAML file with registry/binary extension entries (registry.entries / binary.entries).",
+    )
     return p
 
 
@@ -66,6 +72,8 @@ def _make_config(args: argparse.Namespace) -> Config:
         config.catalogers = [c.strip() for c in args.catalogers.split(",") if c.strip()]
     if args.log_level:
         config.log_level = args.log_level
+    if args.extension_file:
+        config.extension_file = args.extension_file
     return config
 
 

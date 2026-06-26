@@ -26,3 +26,8 @@ def os_release() -> dict[str, str]:
 def distro_id() -> str:
     """The os-release ``ID`` (e.g. ``debian``, ``ubuntu``, ``alpine``, ``rhel``)."""
     return os_release().get("ID", "").lower() or "linux"
+
+
+def distro_version_id() -> str:
+    """The os-release ``VERSION_ID`` (e.g. ``11``, ``22.04``)."""
+    return os_release().get("VERSION_ID", "")

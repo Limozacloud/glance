@@ -232,6 +232,9 @@ nvdcpe-2.0/
 # MkDocs build output
 site/
 
+# Research / local resources — never commit
+.ressources/
+
 # Scan outputs (generated at runtime)
 *.scan.json
 scan_*.json
@@ -239,3 +242,4 @@ scan_output.json
 scan_report.json
 scan_minimal.json
 *software_inventory.json
+todo.md

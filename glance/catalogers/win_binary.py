@@ -4,12 +4,12 @@ Unlike the Linux binary cataloger (byte-regex on ELF), Windows PE binaries carry
 structured VERSIONINFO resources with ProductName, ProductVersion, and CompanyName.
 This gives reliable, unambiguous product identity without pattern guessing.
 
-Discovery engine cascade (mirrors Linux plocate/mlocate/walk):
-  1. Everything (es.exe) — millisecond-fast index query, if available
+Discovery engine cascade:
+  1. MFT (NTFS Master File Table) — fast, requires admin
   2. os.walk — full filesystem walk, always available as fallback
 
 Gate: file extension (configurable, default .dll/.exe/.sys) + MZ magic (2-byte read).
-Match: ProductName + CompanyName against ``glance/data/win_binary_index.yaml``.
+Match: ProductName + CompanyName against ``glance/classifiers/win_binary_index.yaml``.
 """
 
 from __future__ import annotations
@@ -18,10 +18,7 @@ import ctypes
 import ctypes.wintypes
 import logging
 import os
-import shutil
-import subprocess
 import sys
-from importlib.resources import files
 
 from ..models import CatalogerStatus, Component, ComponentType, Occurrence, ScanReport, Source
 
@@ -37,52 +34,6 @@ DEFAULT_WIN_PATHS = [
     r"C:\Program Files (x86)",
     r"C:\ProgramData",
 ]
-
-#: Known locations for Voidtools Everything CLI (es.exe).
-_ES_SEARCH_PATHS = [
-    r"C:\Program Files\Everything\es.exe",
-    r"C:\Program Files (x86)\Everything\es.exe",
-]
-
-
-# ── Everything engine ────────────────────────────────────────────────────────
-
-
-def _find_es() -> str | None:
-    """Return path to es.exe if Everything is installed, else None."""
-    found = shutil.which("es")
-    if found:
-        return found
-    for candidate in _ES_SEARCH_PATHS:
-        if os.path.isfile(candidate):
-            return candidate
-    return None
-
-
-def _query_everything(es_path: str, extensions: frozenset[str], paths: list[str]) -> list[str]:
-    """Query Everything via es.exe and return matching file paths.
-
-    Uses the extension filter syntax: ext:dll;exe;sys
-    Scoped to each include_path via the path: filter.
-    """
-    ext_filter = ";".join(e.lstrip(".") for e in sorted(extensions))
-    results: list[str] = []
-    for root in paths:
-        # es.exe "ext:dll;exe;sys path:C:\Program Files"
-        query = f'ext:{ext_filter} path:"{root}"'
-        try:
-            out = subprocess.check_output(
-                [es_path, "-r", query],
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                timeout=30,
-            )
-            results.extend(line.strip() for line in out.splitlines() if line.strip())
-        except (subprocess.TimeoutExpired, subprocess.CalledProcessError, OSError) as exc:
-            log.debug("Everything query failed for %s: %s", root, exc)
-    return results
-
 
 # ── VERSIONINFO reader ────────────────────────────────────────────────────────
 
@@ -165,28 +116,29 @@ def _normalize_version(raw: str) -> str:
 # ── Index loading ─────────────────────────────────────────────────────────────
 
 
-def _load_binary_index() -> list[dict]:
-    try:
-        import yaml
-    except ImportError as exc:
-        raise ImportError("win_binary_index requires PyYAML — pip install glance[full]") from exc
-    text = (
-        files("glance")
-        .joinpath("data")
-        .joinpath("win_binary_index.yaml")
-        .read_text(encoding="utf-8")
-    )
-    return yaml.safe_load(text).get("entries", [])
+def _load_binary_index(extension_file: str | None = None) -> list[dict]:
+    from ..classifiers.win_binary_data import WIN_BINARY_ENTRIES
+
+    entries = list(WIN_BINARY_ENTRIES)
+    if extension_file:
+        try:
+            import yaml
+        except ImportError as exc:
+            raise ImportError("extension_file requires PyYAML — pip install pyyaml") from exc
+        import pathlib
+
+        doc = yaml.safe_load(pathlib.Path(extension_file).read_text(encoding="utf-8")) or {}
+        entries.extend(doc.get("binary", {}).get("entries", []))
+    return entries
 
 
-_BINARY_INDEX_CACHE: list[dict] | None = None
+_BINARY_INDEX_CACHE: dict[str | None, list[dict]] = {}
 
 
-def _binary_index() -> list[dict]:
-    global _BINARY_INDEX_CACHE
-    if _BINARY_INDEX_CACHE is None:
-        _BINARY_INDEX_CACHE = _load_binary_index()
-    return _BINARY_INDEX_CACHE
+def _binary_index(extension_file: str | None = None) -> list[dict]:
+    if extension_file not in _BINARY_INDEX_CACHE:
+        _BINARY_INDEX_CACHE[extension_file] = _load_binary_index(extension_file)
+    return _BINARY_INDEX_CACHE[extension_file]
 
 
 # ── Matching ──────────────────────────────────────────────────────────────────
@@ -221,25 +173,31 @@ class WinBinaryCataloger:
         paths: list[str] | None = None,
         extensions: list[str] | None = None,
         engine: str = "auto",
+        extension_file: str | None = None,
     ) -> None:
         self.paths = paths or DEFAULT_WIN_PATHS
         self.extensions = frozenset(e.lower() for e in (extensions or DEFAULT_PE_EXTENSIONS))
-        self.engine = engine  # "auto" | "everything" | "walk"
+        self.engine = engine  # "auto" | "mft" | "walk"
+        self.extension_file = extension_file
 
     def available(self) -> bool:
         return sys.platform == "win32"
 
     def _discover(self, report: ScanReport) -> tuple[list[str], str]:
         """Return (candidate_paths, engine_used)."""
-        es = _find_es() if self.engine in ("auto", "everything") else None
+        if self.engine in ("auto", "mft"):
+            from ..discovery import mft as _mft
 
-        if es:
-            log.debug("win_binary: using Everything engine (%s)", es)
-            candidates = _query_everything(es, self.extensions, self.paths)
-            return candidates, "everything"
-
-        if self.engine == "everything":
-            log.warning("win_binary: Everything (es.exe) not found, falling back to walk")
+            if _mft.available():
+                drives = _mft.local_drives()
+                candidates = _mft.query(
+                    drives,
+                    extensions=list(self.extensions),
+                    scope_paths=self.paths,
+                )
+                return candidates, "mft"
+            if self.engine == "mft":
+                log.warning("win_binary: MFT not available (no admin?), falling back to walk")
 
         # walk fallback
         walk_candidates: list[str] = []
@@ -260,7 +218,7 @@ class WinBinaryCataloger:
             return []
 
         try:
-            index = _binary_index()
+            index = _binary_index(self.extension_file)
         except Exception as exc:
             report.catalogers.append(
                 CatalogerStatus(self.name, False, detail=f"failed to load binary index: {exc}")

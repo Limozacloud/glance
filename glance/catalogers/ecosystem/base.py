@@ -47,10 +47,9 @@ class EcosystemCataloger:
     @abstractmethod
     def _is_manifest(self, filename: str) -> bool: ...
 
-    @abstractmethod
     def manifest_filenames(self) -> list[str]:
         """Literal filenames used as locate/MFT query anchors."""
-        ...
+        return []
 
     @abstractmethod
     def _parse_manifest(self, path: str) -> list[tuple[str, str | None]]:

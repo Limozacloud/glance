@@ -11,7 +11,7 @@ import os
 from urllib.parse import quote
 
 from ..models import CatalogerStatus, Component, ComponentType, ScanReport, Source
-from ._distro import distro_id
+from ._distro import distro_id, distro_version_id
 
 log = logging.getLogger(__name__)
 
@@ -28,11 +28,19 @@ class DpkgCataloger:
     def available(self) -> bool:
         return os.path.isfile(self.status_path)
 
-    def _purl(self, name: str, version: str, arch: str) -> str:
+    def _purl(self, name: str, version: str, arch: str, upstream: str = "") -> str:
         namespace = distro_id() or "debian"
         purl = f"pkg:deb/{namespace}/{quote(name)}@{quote(version)}"
+        params = []
         if arch:
-            purl += f"?arch={quote(arch)}"
+            params.append(f"arch={quote(arch)}")
+        version_id = distro_version_id()
+        if version_id:
+            params.append(f"distro={quote(namespace)}-{quote(version_id)}")
+        if upstream and upstream != name:
+            params.append(f"upstream={quote(upstream)}")
+        if params:
+            purl += "?" + "&".join(params)
         return purl
 
     def catalog(self, report: ScanReport) -> list[Component]:
@@ -56,7 +64,10 @@ class DpkgCataloger:
             if not name or not version:
                 continue
             arch = fields.get("Architecture", "")
-            purl = self._purl(name, version, arch)
+            source = fields.get("Source", "")
+            # Source: field can include version: "openssl (1.1.1w-1)" — strip it
+            upstream = source.split()[0] if source else ""
+            purl = self._purl(name, version, arch, upstream)
             self._purl_by_name[name] = purl
             if arch:
                 self._purl_by_name[f"{name}:{arch}"] = purl

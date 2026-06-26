@@ -1,4 +1,10 @@
-"""npm ecosystem cataloger — parses package-lock.json and yarn.lock."""
+"""npm ecosystem cataloger — parses package-lock.json and yarn.lock.
+
+# TODO: Switch to reading node_modules/*/package.json (install store) instead of
+# lock-files. Lock-files emit version="*" for peer/optional deps that were never
+# installed. node_modules contains only actually-installed packages with exact
+# resolved versions — no unresolved wildcards possible.
+"""
 
 from __future__ import annotations
 
@@ -15,6 +21,9 @@ _YARN_ENTRY = re.compile(r'^"?(@?[^@"]+)@')
 class NpmCataloger(EcosystemCataloger):
     name = "npm"
     source = Source.NPM
+
+    def manifest_filenames(self) -> list[str]:
+        return ["package-lock.json", "yarn.lock"]
 
     def _is_manifest(self, filename: str) -> bool:
         return filename in ("package-lock.json", "yarn.lock")
