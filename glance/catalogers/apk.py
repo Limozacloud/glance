@@ -1,8 +1,9 @@
 """apk cataloger — parses Alpine's ``/lib/apk/db/installed`` directly.
 
 The installed DB is a sequence of blank-line-separated stanzas. Package fields:
-``P:`` name, ``V:`` version, ``A:`` arch. File paths are built from ``F:``
-(folder) followed by one or more ``R:`` (regular file) records.
+``P:`` name, ``V:`` version, ``A:`` arch, ``o:`` origin (source package).
+File paths are built from ``F:`` (folder) followed by one or more ``R:``
+(regular file) records.
 """
 
 from __future__ import annotations
@@ -12,7 +13,7 @@ import os
 from urllib.parse import quote
 
 from ..models import CatalogerStatus, Component, ComponentType, ScanReport, Source
-from ._distro import distro_id
+from ._distro import distro_id, distro_version_id
 
 log = logging.getLogger(__name__)
 
@@ -28,11 +29,19 @@ class ApkCataloger:
     def available(self) -> bool:
         return os.path.isfile(self.db_path)
 
-    def _purl(self, name: str, version: str, arch: str) -> str:
+    def _purl(self, name: str, version: str, arch: str, origin: str = "") -> str:
         namespace = distro_id() or "alpine"
         purl = f"pkg:apk/{namespace}/{quote(name)}@{quote(version)}"
+        params = []
         if arch:
-            purl += f"?arch={quote(arch)}"
+            params.append(f"arch={quote(arch)}")
+        version_id = distro_version_id()
+        if version_id:
+            params.append(f"distro={quote(namespace)}-{quote(version_id)}")
+        if origin and origin != name:
+            params.append(f"upstream={quote(origin)}")
+        if params:
+            purl += "?" + "&".join(params)
         return purl
 
     def catalog(self, report: ScanReport) -> list[Component]:
@@ -47,7 +56,7 @@ class ApkCataloger:
         for stanza in text.split("\n\n"):
             if not stanza.strip():
                 continue
-            name = version = arch = ""
+            name = version = arch = origin = ""
             folder = ""
             files: list[str] = []
             for line in stanza.splitlines():
@@ -60,13 +69,15 @@ class ApkCataloger:
                     version = value
                 elif tag == "A":
                     arch = value
+                elif tag == "o":
+                    origin = value
                 elif tag == "F":
                     folder = value
                 elif tag == "R":
                     files.append(f"/{folder}/{value}" if folder else f"/{value}")
             if not name or not version:
                 continue
-            purl = self._purl(name, version, arch)
+            purl = self._purl(name, version, arch, origin)
             for path in files:
                 self._index[path] = purl
             components.append(
