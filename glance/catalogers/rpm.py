@@ -36,7 +36,12 @@ def _sourcerpm_name(sourcerpm: str) -> str:
     return re.sub(r"-[0-9].*$", "", sourcerpm)
 
 
-_DISTRO_NAMESPACE = {"rhel": "redhat", "centos": "redhat", "almalinux": "almalinux", "rocky": "rocky"}
+_DISTRO_NAMESPACE = {
+    "rhel": "redhat",
+    "centos": "redhat",
+    "almalinux": "almalinux",
+    "rocky": "rocky",
+}
 
 
 def _purl(name: str, epoch: str, version: str, release: str, arch: str, sourcerpm: str = "") -> str:

@@ -42,9 +42,7 @@ def excluded_mount_prefixes(exclude_fs_types: list[str]) -> list[str]:
     """
     excluded = {t.lower() for t in exclude_fs_types}
     prefixes = [
-        mp
-        for mp, fstype in read_mounts()
-        if fstype.lower() in excluded and mp not in ("/", "")
+        mp for mp, fstype in read_mounts() if fstype.lower() in excluded and mp not in ("/", "")
     ]
     # de-dup and sort longest-first so the most specific mount wins
     return sorted(set(prefixes), key=len, reverse=True)

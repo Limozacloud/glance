@@ -26,11 +26,11 @@ ECOSYSTEM_PROJECT_CATALOGERS: dict[str, type] = {
 #: Install-store based catalogers — suitable for server / container scans.
 #: Each reads what is actually deployed, not what a lock-file describes.
 ECOSYSTEM_INSTALLED_CATALOGERS: dict[str, type] = {
-    "distinfo": DistInfoCataloger,    # Python: .dist-info/METADATA  (installed via pip/uv/…)
+    "distinfo": DistInfoCataloger,  # Python: .dist-info/METADATA  (installed via pip/uv/…)
     "node_installed": NodeInstalledCataloger,  # Node: node_modules/*/package.json
-    "jar": JarCataloger,              # Java: META-INF/maven/**/pom.properties in JARs
-    "gem_installed": GemInstalledCataloger,    # Ruby: specifications/*.gemspec filenames
-    "nuget": NugetCataloger,          # .NET: .deps.json is already install-level
+    "jar": JarCataloger,  # Java: META-INF/maven/**/pom.properties in JARs
+    "gem_installed": GemInstalledCataloger,  # Ruby: specifications/*.gemspec filenames
+    "nuget": NugetCataloger,  # .NET: .deps.json is already install-level
     # Go: gobinary (handled outside ecosystem pipeline)
 }
 

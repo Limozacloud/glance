@@ -37,8 +37,8 @@ def _write_binary(tmp_path, name: str, data: bytes) -> str:
 
 def test_is_elf():
     assert _is_elf(b"\x7fELF\x02\x01")
-    assert not _is_elf(b"MZ\x00\x00")   # PE
-    assert not _is_elf(b"\x7fEL")       # truncated
+    assert not _is_elf(b"MZ\x00\x00")  # PE
+    assert not _is_elf(b"\x7fEL")  # truncated
     assert not _is_elf(b"")
 
 
@@ -65,7 +65,7 @@ def test_parse_buildinfo_from_bytes():
 
 
 def test_parse_buildinfo_not_go():
-    data = b"\x7fELF\x00" * 64   # ELF but no Go magic
+    data = b"\x7fELF\x00" * 64  # ELF but no Go magic
     m = mmap.mmap(-1, len(data))
     m.write(data)
     m.seek(0)

@@ -116,7 +116,10 @@ def test_rpm_owner_mocked(monkeypatch):
 
     def fake_run(cmd, **kwargs):
         return subprocess.CompletedProcess(
-            cmd, 0, stdout="openssl-libs\t1\t3.0.7\t1.el9\tx86_64\topenssl-3.0.7-1.el9.src.rpm\n", stderr=""
+            cmd,
+            0,
+            stdout="openssl-libs\t1\t3.0.7\t1.el9\tx86_64\topenssl-3.0.7-1.el9.src.rpm\n",
+            stderr="",
         )
 
     monkeypatch.setattr(rpm_mod.subprocess, "run", fake_run)

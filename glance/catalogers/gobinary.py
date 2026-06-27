@@ -31,7 +31,7 @@ _TEXT_RE = re.compile(
 # Old format (pre-1.18): linker places infoStart/infoEnd markers around the
 # modinfo blob. These are fixed 16-byte sentinels.
 _INFO_START = bytes.fromhex("3077af0c9274080241e1c107e6d618e6")
-_INFO_END   = bytes.fromhex("f932433186182072008242104116d8f2")
+_INFO_END = bytes.fromhex("f932433186182072008242104116d8f2")
 
 # Skip binaries larger than this to avoid reading entire filesystem images.
 _MAX_FILE_SIZE = 256 * 1024 * 1024  # 256 MB
@@ -128,9 +128,7 @@ class GoBinaryCataloger:
         report.catalogers.append(CatalogerStatus(self.name, True, len(components)))
         return components
 
-    def _scan_file(
-        self, path: str, size: int, seen: set[tuple[str, str]]
-    ) -> list[Component]:
+    def _scan_file(self, path: str, size: int, seen: set[tuple[str, str]]) -> list[Component]:
         if size == 0:
             return []
         try:

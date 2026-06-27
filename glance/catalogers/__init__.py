@@ -31,8 +31,13 @@ CATALOGER_GROUPS: dict[str, list[str]] = {
     "ecosystem-project": list(ECOSYSTEM_PROJECT_CATALOGERS),
     "ecosystem-installed": list(ECOSYSTEM_INSTALLED_CATALOGERS),
     "all": [
-        "dpkg", "rpm", "apk", "registry",
-        "binary", "win_binary", "gobinary",
+        "dpkg",
+        "rpm",
+        "apk",
+        "registry",
+        "binary",
+        "win_binary",
+        "gobinary",
         "ecosystem",  # sentinel — expands to the mode-selected ecosystem set
     ],
 }
