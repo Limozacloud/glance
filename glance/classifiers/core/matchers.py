@@ -13,7 +13,7 @@ import glob as _globmod
 import os
 import re
 import struct
-from typing import Callable
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from ... import _glob

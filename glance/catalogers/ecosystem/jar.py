@@ -18,7 +18,7 @@ import os
 import zipfile
 
 from ...models import Source
-from .base import EcosystemCataloger, _SKIP_DIRS
+from .base import _SKIP_DIRS, EcosystemCataloger
 
 
 class JarCataloger(EcosystemCataloger):

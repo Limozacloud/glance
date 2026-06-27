@@ -11,7 +11,7 @@ import json
 import os
 
 from ...models import Source
-from .base import EcosystemCataloger, _SKIP_DIRS
+from .base import _SKIP_DIRS, EcosystemCataloger
 
 # Walk into node_modules — exclude everything else from _SKIP_DIRS.
 _WALK_SKIP = _SKIP_DIRS - {"node_modules"}

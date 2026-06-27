@@ -15,7 +15,7 @@ import os
 import re
 
 from ...models import Source
-from .base import EcosystemCataloger, _SKIP_DIRS
+from .base import _SKIP_DIRS, EcosystemCataloger
 
 # <gem-name>-<version>.gemspec  — version always starts with a digit.
 # Greedy (.+) takes the longest possible name before the last -<digit> sequence.

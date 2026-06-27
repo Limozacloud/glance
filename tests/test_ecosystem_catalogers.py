@@ -4,11 +4,10 @@ from __future__ import annotations
 
 import json
 import textwrap
+import zipfile
 from pathlib import Path
 
-import zipfile
-
-from glance.catalogers import CATALOGER_GROUPS, expand_catalogers
+from glance.catalogers import expand_catalogers
 from glance.catalogers.ecosystem.distinfo import DistInfoCataloger
 from glance.catalogers.ecosystem.gem import GemCataloger
 from glance.catalogers.ecosystem.gem_installed import GemInstalledCataloger
