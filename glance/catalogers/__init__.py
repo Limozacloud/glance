@@ -6,6 +6,7 @@ from .apk import ApkCataloger
 from .binary import BinaryCataloger
 from .dpkg import DpkgCataloger
 from .ecosystem import ECOSYSTEM_CATALOGERS
+from .gobinary import GoBinaryCataloger
 from .registry import RegistryCataloger
 from .rpm import RpmCataloger
 from .win_binary import WinBinaryCataloger
@@ -25,7 +26,7 @@ CATALOGER_GROUPS: dict[str, list[str]] = {
     "binary": ["binary", "win_binary"],
     "ecosystem": list(ECOSYSTEM_CATALOGERS),
     "installed": ["dpkg", "rpm", "apk", "registry", "win_binary", "distinfo"],
-    "all": ["dpkg", "rpm", "apk", "registry", "binary", "win_binary"] + list(ECOSYSTEM_CATALOGERS),
+    "all": ["dpkg", "rpm", "apk", "registry", "binary", "win_binary", "gobinary"] + list(ECOSYSTEM_CATALOGERS),
 }
 
 
@@ -45,6 +46,7 @@ __all__ = [
     "ApkCataloger",
     "BinaryCataloger",
     "DpkgCataloger",
+    "GoBinaryCataloger",
     "RegistryCataloger",
     "RpmCataloger",
     "WinBinaryCataloger",

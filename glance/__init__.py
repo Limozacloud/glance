@@ -22,7 +22,7 @@ from __future__ import annotations
 import logging
 import time
 
-from .catalogers import ECOSYSTEM_CATALOGERS, PACKAGE_CATALOGERS, BinaryCataloger, expand_catalogers
+from .catalogers import ECOSYSTEM_CATALOGERS, PACKAGE_CATALOGERS, BinaryCataloger, GoBinaryCataloger, expand_catalogers
 from .classifiers.core.loader import load_classifier_file
 from .classifiers.linux_binary import default_classifiers
 from .config import Config, Engine, OnStaleDB
@@ -127,6 +127,12 @@ def scan(config: Config | None = None) -> ScanResult:
     else:
         report.catalogers.append(CatalogerStatus("binary", False, detail="disabled by config"))
         file_idx = discover_all(config, gate, extra_names, report)
+
+    if enabled is None or "gobinary" in enabled:
+        go_comps = GoBinaryCataloger().catalog(config.include_paths or ["/"], report)
+        components.extend(go_comps)
+    else:
+        report.catalogers.append(CatalogerStatus("gobinary", False, detail="disabled by config"))
 
     for name, cataloger in eco_catalogers.items():
         if enabled is not None and name not in enabled:

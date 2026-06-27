@@ -38,7 +38,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "Comma-separated catalogers or groups to run. "
             "Groups: software (dpkg/rpm/apk/registry), binary (binary/win_binary), "
             "ecosystem (pip/go/npm/nuget/maven/gem), all. "
-            "Individual: dpkg, rpm, apk, registry, win_binary, binary, pip, go, npm, nuget, maven, gem."
+            "Individual: dpkg, rpm, apk, registry, win_binary, binary, gobinary, pip, go, npm, nuget, maven, gem."
         ),
     )
     p.add_argument(
