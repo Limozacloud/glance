@@ -6,10 +6,16 @@ import json
 import textwrap
 from pathlib import Path
 
+import zipfile
+
 from glance.catalogers import CATALOGER_GROUPS, expand_catalogers
+from glance.catalogers.ecosystem.distinfo import DistInfoCataloger
 from glance.catalogers.ecosystem.gem import GemCataloger
+from glance.catalogers.ecosystem.gem_installed import GemInstalledCataloger
 from glance.catalogers.ecosystem.go import GoCataloger
+from glance.catalogers.ecosystem.jar import JarCataloger
 from glance.catalogers.ecosystem.maven import MavenCataloger
+from glance.catalogers.ecosystem.node_installed import NodeInstalledCataloger
 from glance.catalogers.ecosystem.npm import NpmCataloger
 from glance.catalogers.ecosystem.nuget import NugetCataloger
 from glance.catalogers.ecosystem.pip import PipCataloger
@@ -90,14 +96,14 @@ def test_go_sum_basic(tmp_path):
     """)
     comps = _catalog(GoCataloger, tmp_path, {"go.sum": content})
     names = {c.name: c.version for c in comps}
-    assert names["github.com/pkg/errors"] == "0.9.1"
-    assert names["golang.org/x/sys"] == "0.21.0"
+    assert names["github.com/pkg/errors"] == "v0.9.1"
+    assert names["golang.org/x/sys"] == "v0.21.0"
 
 
 def test_go_purl(tmp_path):
     content = "github.com/stretchr/testify v1.8.4 h1:abc=\n"
     comps = _catalog(GoCataloger, tmp_path, {"go.sum": content})
-    assert comps[0].purl == "pkg:golang/github.com/stretchr/testify@1.8.4"
+    assert comps[0].purl == "pkg:golang/github.com/stretchr/testify@v1.8.4"
     assert comps[0].source == Source.GO
 
 
@@ -286,6 +292,131 @@ def test_gem_purl(tmp_path):
     assert comps[0].source == Source.GEM
 
 
+# ── DistInfoCataloger ─────────────────────────────────────────────────────────
+
+
+def test_distinfo_reads_metadata(tmp_path):
+    metadata = "Metadata-Version: 2.1\nName: requests\nVersion: 2.31.0\n\n"
+    comps = _catalog(
+        DistInfoCataloger,
+        tmp_path,
+        {"site-packages/requests-2.31.0.dist-info/METADATA": metadata},
+    )
+    assert len(comps) == 1
+    assert comps[0].name == "requests"
+    assert comps[0].version == "2.31.0"
+    assert comps[0].purl == "pkg:pypi/requests@2.31.0"
+    assert comps[0].source == Source.DISTINFO
+
+
+def test_distinfo_skips_non_dist_info(tmp_path):
+    metadata = "Metadata-Version: 2.1\nName: foo\nVersion: 1.0\n\n"
+    comps = _catalog(DistInfoCataloger, tmp_path, {"src/METADATA": metadata})
+    assert comps == []
+
+
+# ── NodeInstalledCataloger ────────────────────────────────────────────────────
+
+
+def test_node_installed_regular(tmp_path):
+    pkg = {"name": "express", "version": "4.18.2"}
+    comps = _catalog(
+        NodeInstalledCataloger,
+        tmp_path,
+        {"node_modules/express/package.json": json.dumps(pkg)},
+    )
+    assert len(comps) == 1
+    assert comps[0].name == "express"
+    assert comps[0].version == "4.18.2"
+    assert comps[0].purl == "pkg:npm/express@4.18.2"
+    assert comps[0].source == Source.NPM
+
+
+def test_node_installed_scoped(tmp_path):
+    pkg = {"name": "@babel/core", "version": "7.23.0"}
+    comps = _catalog(
+        NodeInstalledCataloger,
+        tmp_path,
+        {"node_modules/@babel/core/package.json": json.dumps(pkg)},
+    )
+    assert len(comps) == 1
+    assert comps[0].name == "@babel/core"
+
+
+def test_node_installed_skips_project_root(tmp_path):
+    pkg = {"name": "my-app", "version": "1.0.0"}
+    comps = _catalog(NodeInstalledCataloger, tmp_path, {"package.json": json.dumps(pkg)})
+    assert comps == []
+
+
+# ── GemInstalledCataloger ─────────────────────────────────────────────────────
+
+
+def test_gem_installed_reads_gemspec(tmp_path):
+    comps = _catalog(
+        GemInstalledCataloger,
+        tmp_path,
+        {"specifications/rails-7.0.4.gemspec": "# stub gemspec"},
+    )
+    assert len(comps) == 1
+    assert comps[0].name == "rails"
+    assert comps[0].version == "7.0.4"
+    assert comps[0].purl == "pkg:gem/rails@7.0.4"
+    assert comps[0].source == Source.GEM
+
+
+def test_gem_installed_hyphenated_name(tmp_path):
+    comps = _catalog(
+        GemInstalledCataloger,
+        tmp_path,
+        {"specifications/activesupport-7.0.4.3.gemspec": ""},
+    )
+    assert comps[0].name == "activesupport"
+    assert comps[0].version == "7.0.4.3"
+
+
+def test_gem_installed_skips_non_specifications(tmp_path):
+    comps = _catalog(
+        GemInstalledCataloger,
+        tmp_path,
+        {"gems/rails-7.0.4/rails-7.0.4.gemspec": ""},
+    )
+    assert comps == []
+
+
+# ── JarCataloger ─────────────────────────────────────────────────────────────
+
+
+def _make_jar(path: Path, pom_props: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(str(path), "w") as zf:
+        zf.writestr(
+            "META-INF/maven/org.springframework/spring-core/pom.properties",
+            pom_props,
+        )
+
+
+def test_jar_reads_pom_properties(tmp_path):
+    props = "groupId=org.springframework\nartifactId=spring-core\nversion=5.3.20\n"
+    _make_jar(tmp_path / "lib/spring-core-5.3.20.jar", props)
+    cat = JarCataloger(paths=[str(tmp_path)])
+    report = ScanReport()
+    comps = cat.catalog(report)
+    assert len(comps) == 1
+    assert comps[0].name == "org.springframework/spring-core"
+    assert comps[0].version == "5.3.20"
+    assert comps[0].purl == "pkg:maven/org.springframework/spring-core@5.3.20"
+    assert comps[0].source == Source.MAVEN
+
+
+def test_jar_skips_bad_zip(tmp_path):
+    bad = tmp_path / "bad.jar"
+    bad.write_bytes(b"not a zip file")
+    cat = JarCataloger(paths=[str(tmp_path)])
+    comps = cat.catalog(ScanReport())
+    assert comps == []
+
+
 # ── Group expansion ───────────────────────────────────────────────────────────
 
 
@@ -300,14 +431,26 @@ def test_expand_binary_group():
 
 
 def test_expand_ecosystem_group():
+    # "ecosystem" is a sentinel resolved by scan() — it stays as-is after expansion.
     result = expand_catalogers(["ecosystem"])
+    assert result == ["ecosystem"]
+
+
+def test_expand_ecosystem_project_group():
+    result = expand_catalogers(["ecosystem-project"])
     assert set(result) >= {"pip", "go", "npm", "nuget", "maven", "gem"}
+
+
+def test_expand_ecosystem_installed_group():
+    result = expand_catalogers(["ecosystem-installed"])
+    assert set(result) >= {"distinfo", "node_installed", "jar", "gem_installed"}
 
 
 def test_expand_all_group():
     result = expand_catalogers(["all"])
-    expected = set(CATALOGER_GROUPS["all"])
-    assert set(result) == expected
+    assert "dpkg" in result
+    assert "gobinary" in result
+    assert "ecosystem" in result  # sentinel present
 
 
 def test_expand_individual_passthrough():

@@ -36,9 +36,10 @@ def _build_parser() -> argparse.ArgumentParser:
         metavar="LIST",
         help=(
             "Comma-separated catalogers or groups to run. "
-            "Groups: software (dpkg/rpm/apk/registry), binary (binary/win_binary), "
-            "ecosystem (pip/go/npm/nuget/maven/gem), all. "
-            "Individual: dpkg, rpm, apk, registry, win_binary, binary, gobinary, pip, go, npm, nuget, maven, gem."
+            "Groups: software, binary, ecosystem, ecosystem-project, ecosystem-installed, all. "
+            "Project-level: pip, go, npm, nuget, maven, gem. "
+            "Installed-level: distinfo, node_installed, jar, gem_installed. "
+            "Binary: dpkg, rpm, apk, registry, win_binary, binary, gobinary."
         ),
     )
     p.add_argument(

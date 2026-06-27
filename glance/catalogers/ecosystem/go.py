@@ -30,8 +30,7 @@ class GoCataloger(EcosystemCataloger):
                 if not m:
                     continue
                 module, version = m.group(1), m.group(2)
-                # strip leading 'v' for the version field
-                ver = version.lstrip("v") if version.startswith("v") else version
+                ver = version
                 key = (module, ver)
                 if key in seen:
                     continue

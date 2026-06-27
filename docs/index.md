@@ -10,7 +10,7 @@
 | **Windows registry** | Installed applications from Uninstall keys | `Google Chrome 124.0`, `SQL Server 2019` |
 | **PE binaries** | Bundled DLLs/EXEs via Windows VERSIONINFO | `curl 7.65.0` inside Insta360 Studio |
 | **ELF binaries** | Unmanaged shared libraries via byte regex | `openssl 1.1.1w` bundled by an agent |
-| **Ecosystem lock files** | Language-package dependencies | `requests==2.28.1` in requirements.txt |
+| **Ecosystem packages** | Language-package dependencies from install stores or lock files | `requests 2.28.1` via dist-info, `log4j-core 2.14.1` from a JAR |
 
 Every find gets a **PURL** (`pkg:pypi/requests@2.28.1`) and where applicable a **CPE** (`cpe:2.3:a:openssl:openssl:1.1.1w:*:*:*:*:*:*:*`) — the two identifiers vulnerability scanners like Grype and OSV need to correlate CVEs.
 
@@ -27,8 +27,11 @@ glance --output sbom.json --report report.json
 # Only Windows installed software (fast, no filesystem walk)
 glance --catalogers software --format minimal
 
-# Scan application directory for ecosystem lock files
+# Scan a deployed application for installed language packages (default)
 glance --catalogers ecosystem --include /opt/myapp
+
+# Scan a repository for lock-file dependencies
+glance --catalogers ecosystem-project --include /src/myrepo
 
 # Feed directly into Grype
 glance -o sbom.json && grype sbom:sbom.json

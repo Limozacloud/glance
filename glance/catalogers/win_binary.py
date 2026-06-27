@@ -15,10 +15,12 @@ Match: ProductName + CompanyName against ``glance/classifiers/win_binary_index.y
 from __future__ import annotations
 
 import ctypes
-import ctypes.wintypes
 import logging
 import os
 import sys
+
+if sys.platform == "win32":
+    import ctypes.wintypes
 
 from ..models import CatalogerStatus, Component, ComponentType, Occurrence, ScanReport, Source
 

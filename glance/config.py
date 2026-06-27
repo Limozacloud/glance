@@ -108,6 +108,11 @@ class Config:
     # --- catalogers ------------------------------------------------------------
     #: Which catalogers to run. ``None`` = all that are applicable on this host.
     catalogers: list[str] | None = None
+    #: Ecosystem scan depth: "installed" (default) reads the actual install store
+    #: (.dist-info, node_modules, JARs, gemspecs) for server/container scans;
+    #: "project" reads manifest/lock-files (requirements.txt, go.sum, pom.xml …)
+    #: for repo/CI scans.
+    ecosystem_mode: str = "installed"
     #: Correlate binary finds against package-DB file ownership (managed/unmanaged).
     correlate_ownership: bool = True
     #: Extra binary-classifier definition files (YAML/JSON) loaded in addition to

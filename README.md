@@ -3,12 +3,14 @@
 [![CI](https://github.com/Limozacloud/glance/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Limozacloud/glance/actions/workflows/ci.yml?query=branch%3Amain)
 [![License](https://img.shields.io/github/license/Limozacloud/glance)](LICENSE)
 
-A **mini-SBOM scanner** for Linux servers. It produces a compact
-[CycloneDX](https://cyclonedx.org/) 1.6 SBOM from two kinds of evidence:
+A **mini-SBOM scanner** for servers and containers. It produces a compact
+[CycloneDX](https://cyclonedx.org/) 1.6 SBOM from multiple evidence sources:
 
-1. **Package catalogers** (`rpm`, `dpkg`, `apk`) enumerate every installed
+1. **OS package catalogers** (`rpm`, `dpkg`, `apk`) enumerate every installed
    package with its full version and a proper `pkg:rpm`/`pkg:deb`/`pkg:apk` PURL.
-2. **The binary cataloger** finds files via cheap *locate gates*, reads the
+2. **Ecosystem catalogers** read actual install stores (`dist-info`, `node_modules`,
+   JARs, gemspecs) or project lock files — switchable via `ecosystem_mode`.
+3. **The binary cataloger** finds files via cheap *locate gates*, reads the
    version straight out of the bytes, and attributes the file to an upstream
    identity — e.g. a bundled `libcrypto.so.1.1` becomes `openssl 1.1.1w` with a
    `pkg:generic/openssl@1.1.1w` PURL **and** a versioned CPE.
@@ -41,8 +43,12 @@ glance -o sbom.json && grype sbom:sbom.json
 --config FILE        YAML or JSON config file
 --engine ENGINE      auto | plocate | mlocate | walk   (default: auto)
 --include PATH       root path to scan (repeatable)
---catalogers LIST    comma list: binary,rpm,dpkg,apk    (default: all applicable)
---format FORMAT      cyclonedx | native                 (default: cyclonedx)
+--catalogers LIST    groups: software, binary, ecosystem, ecosystem-installed,
+                     ecosystem-project, all
+                     individuals: dpkg, rpm, apk, registry, binary, win_binary,
+                     gobinary, distinfo, node_installed, jar, gem_installed,
+                     pip, go, npm, nuget, maven, gem
+--format FORMAT      cyclonedx | native | minimal       (default: cyclonedx)
 --output, -o FILE    write the SBOM (default: stdout)
 --report FILE        write the audit report JSON
 ```
@@ -110,7 +116,8 @@ absent keys keep it, and an unknown key is a hard error.
 | `engine` | `auto` | `auto`/`plocate`/`mlocate`/`walk` |
 | `max_db_age_hours` | `24` | a locate DB older than this is unusable |
 | `on_stale_db` | `fallback` | `fallback` (cascade) or `warn` (use anyway) |
-| `catalogers` | `null` (all applicable) | subset of `binary,rpm,dpkg,apk` |
+| `catalogers` | `null` (all applicable) | group or individual cataloger names |
+| `ecosystem_mode` | `installed` | `installed` (dist-info/node_modules/JARs/gemspecs) or `project` (lock files) |
 | `correlate_ownership` | `true` | managed/unmanaged correlation |
 | `classifier_files` | `[]` | extra YAML/JSON classifier definitions (no code change) |
 | `max_file_size` | `209715200` | skip content scan above this many bytes |

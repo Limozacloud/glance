@@ -28,10 +28,12 @@ Pass a group name to `--catalogers` instead of listing individual catalogers:
 |-------|-----------|
 | `software` | `dpkg`, `rpm`, `apk`, `registry` |
 | `binary` | `binary`, `win_binary` |
-| `ecosystem` | `pip`, `go`, `npm`, `nuget`, `maven`, `gem` |
-| `all` | everything above |
+| `ecosystem` | resolved by `ecosystem_mode` config (default: installed set) |
+| `ecosystem-installed` | `distinfo`, `node_installed`, `jar`, `gem_installed`, `nuget` |
+| `ecosystem-project` | `pip`, `go`, `npm`, `nuget`, `maven`, `gem` |
+| `all` | everything above, including `gobinary` |
 
-Groups and individual names can be mixed: `--catalogers software,pip`.
+Groups and individual names can be mixed: `--catalogers software,distinfo,jar`.
 
 ## Examples
 
@@ -48,8 +50,11 @@ glance --catalogers software,binary --output sbom.json
 # Linux: narrow scope to /opt, force filesystem walk
 glance --engine walk --include /opt --output sbom.json
 
-# Scan a deployed application for ecosystem dependencies
+# Scan a deployed application — installed packages (default ecosystem mode)
 glance --catalogers ecosystem --include /opt/myapp --output app_sbom.json
+
+# Scan a source repository — lock files and manifests
+glance --catalogers ecosystem-project --include /src/myrepo --output repo_sbom.json
 
 # Pipeline: scan then vulnerability-match
 glance -o sbom.json && grype sbom:sbom.json

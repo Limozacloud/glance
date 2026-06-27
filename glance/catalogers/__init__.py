@@ -5,7 +5,7 @@ from __future__ import annotations
 from .apk import ApkCataloger
 from .binary import BinaryCataloger
 from .dpkg import DpkgCataloger
-from .ecosystem import ECOSYSTEM_CATALOGERS
+from .ecosystem import ECOSYSTEM_INSTALLED_CATALOGERS, ECOSYSTEM_PROJECT_CATALOGERS
 from .gobinary import GoBinaryCataloger
 from .registry import RegistryCataloger
 from .rpm import RpmCataloger
@@ -21,12 +21,20 @@ PACKAGE_CATALOGERS = {
 }
 
 #: Named groups that expand to individual cataloger names.
+#: "ecosystem" is a sentinel resolved by scan() based on ecosystem_mode.
 CATALOGER_GROUPS: dict[str, list[str]] = {
     "software": ["dpkg", "rpm", "apk", "registry"],
     "binary": ["binary", "win_binary"],
-    "ecosystem": list(ECOSYSTEM_CATALOGERS),
-    "installed": ["dpkg", "rpm", "apk", "registry", "win_binary", "distinfo"],
-    "all": ["dpkg", "rpm", "apk", "registry", "binary", "win_binary", "gobinary"] + list(ECOSYSTEM_CATALOGERS),
+    # "ecosystem" self-expands as a sentinel; scan() picks project vs installed
+    # based on config.ecosystem_mode.
+    "ecosystem": ["ecosystem"],
+    "ecosystem-project": list(ECOSYSTEM_PROJECT_CATALOGERS),
+    "ecosystem-installed": list(ECOSYSTEM_INSTALLED_CATALOGERS),
+    "all": [
+        "dpkg", "rpm", "apk", "registry",
+        "binary", "win_binary", "gobinary",
+        "ecosystem",  # sentinel — expands to the mode-selected ecosystem set
+    ],
 }
 
 
@@ -51,7 +59,8 @@ __all__ = [
     "RpmCataloger",
     "WinBinaryCataloger",
     "PACKAGE_CATALOGERS",
-    "ECOSYSTEM_CATALOGERS",
+    "ECOSYSTEM_PROJECT_CATALOGERS",
+    "ECOSYSTEM_INSTALLED_CATALOGERS",
     "CATALOGER_GROUPS",
     "expand_catalogers",
 ]
