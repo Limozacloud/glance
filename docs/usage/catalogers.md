@@ -8,24 +8,31 @@ A **cataloger** is a self-contained component that discovers one class of softwa
 # Run a group
 glance --catalogers software          # OS packages only (fast)
 glance --catalogers binary            # Bundled ELF/PE libraries
-glance --catalogers ecosystem         # Language package lock files
+glance --catalogers ecosystem         # Language packages (mode: installed or project)
 glance --catalogers all               # Everything
 
-# Mix groups and individuals
-glance --catalogers software,pip
+# Explicit ecosystem mode
+glance --catalogers ecosystem-installed   # Actual install stores (dist-info, node_modules, JARs, gemspecs)
+glance --catalogers ecosystem-project     # Lock / manifest files (requirements.txt, go.sum, …)
 
-# Individual catalogers
-glance --catalogers dpkg,pip,go
+# Mix groups and individuals
+glance --catalogers software,distinfo,jar
 ```
 
 ## Groups
 
-| Group | Members | Platform |
-|-------|---------|----------|
-| `software` | `dpkg`, `rpm`, `apk`, `registry` | Any |
-| `binary` | `binary`, `win_binary` | Any |
-| `ecosystem` | `pip`, `go`, `npm`, `nuget`, `maven`, `gem` | Any |
-| `all` | Everything | Any |
+| Group | Members | Notes |
+|-------|---------|-------|
+| `software` | `dpkg`, `rpm`, `apk`, `registry` | OS-level packages |
+| `binary` | `binary`, `win_binary` | Bundled ELF/PE libraries |
+| `ecosystem` | resolved by `ecosystem_mode` config | Default: `installed` set |
+| `ecosystem-installed` | `distinfo`, `node_installed`, `jar`, `gem_installed`, `nuget` | Actual install stores |
+| `ecosystem-project` | `pip`, `go`, `npm`, `nuget`, `maven`, `gem` | Lock/manifest files |
+| `all` | everything above | Includes `gobinary` |
+
+### `ecosystem` vs `ecosystem-installed` / `ecosystem-project`
+
+`--catalogers ecosystem` is a **mode-aware alias**: it expands to either the installed-level or project-level set depending on `ecosystem_mode` in config (default: `installed`). Use the explicit group names to override regardless of config.
 
 ## Individual catalogers
 
@@ -44,16 +51,29 @@ glance --catalogers dpkg,pip,go
 |------|--------------|-----------|----------|
 | `binary` | ELF binaries via byte-regex classifiers | `pkg:generic` | Linux |
 | `win_binary` | PE binaries via VERSIONINFO API | `pkg:generic` | Windows |
+| `gobinary` | Go binaries (buildinfo, both pre-1.18 and 1.18+ formats) | `pkg:golang` | Any |
 
-### Ecosystem catalogers
+### Ecosystem catalogers — installed level
 
-These walk `include_paths` looking for lock/manifest files.
+Read the actual install stores. Use these for server/container scans where you want to know what is genuinely deployed.
+
+| Name | What it reads | PURL type | Notes |
+|------|--------------|-----------|-------|
+| `distinfo` | `*.dist-info/METADATA` | `pkg:pypi` | Everything pip/uv/poetry installs — venvs included |
+| `node_installed` | `node_modules/*/package.json` | `pkg:npm` | Top-level packages only; scoped (`@scope/pkg`) supported |
+| `jar` | `META-INF/maven/**/pom.properties` inside `*.jar` | `pkg:maven` | Reads `groupId/artifactId/version` directly from the JAR |
+| `gem_installed` | `specifications/<name>-<version>.gemspec` | `pkg:gem` | Parses name and version from the filename |
+| `nuget` | `packages.config`, `*.packages.lock.json` | `pkg:nuget` | Shared with project level |
+
+### Ecosystem catalogers — project level
+
+Read lock and manifest files. Use these for repository / CI scans where you want to audit declared dependencies.
 
 | Name | Manifest files | PURL type | Notes |
 |------|---------------|-----------|-------|
 | `pip` | `requirements.txt`, `requirements-*.txt`, `Pipfile.lock` | `pkg:pypi` | Only pinned (`==`) versions |
-| `go` | `go.sum` | `pkg:golang` | Deduplicates `/go.mod` lines |
-| `npm` | `package-lock.json`, `yarn.lock` | `pkg:npm` | Supports lockfile v1/v2/v3 |
+| `go` | `go.sum` | `pkg:golang` | Version includes leading `v` (`v0.9.1`) |
+| `npm` | `package-lock.json`, `yarn.lock` | `pkg:npm` | Lockfile v1/v2/v3; scoped packages |
 | `nuget` | `packages.config`, `*.packages.lock.json` | `pkg:nuget` | |
 | `maven` | `pom.xml` | `pkg:maven` | Skips `${property}` versions |
 | `gem` | `Gemfile.lock` | `pkg:gem` | Parses `specs:` section |

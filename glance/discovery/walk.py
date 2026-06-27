@@ -34,9 +34,16 @@ def read_mounts() -> list[tuple[str, str]]:
 
 
 def excluded_mount_prefixes(exclude_fs_types: list[str]) -> list[str]:
-    """Mountpoints whose filesystem type is excluded (longest first)."""
+    """Mountpoints whose filesystem type is excluded (longest first).
+
+    The root mount (``/``) is never excluded even if its fstype matches — in
+    Docker/OCI containers the root is always an overlay and excluding it would
+    make every user-specified ``--include`` path unreachable.
+    """
     excluded = {t.lower() for t in exclude_fs_types}
-    prefixes = [mp for mp, fstype in read_mounts() if fstype.lower() in excluded]
+    prefixes = [
+        mp for mp, fstype in read_mounts() if fstype.lower() in excluded and mp not in ("/", "")
+    ]
     # de-dup and sort longest-first so the most specific mount wins
     return sorted(set(prefixes), key=len, reverse=True)
 

@@ -160,11 +160,30 @@ def discover(config: Config, gate: Gate, report: ScanReport) -> set[str]:
     return candidates
 
 
+def _names_to_globs(names: list[str]) -> list[str]:
+    """Convert bare filenames/extensions to doublestar globs for Gate matching.
+
+    "METADATA"    -> "**/METADATA"    (exact basename)
+    "package.json"-> "**/package.json"
+    ".jar"        -> "**/*.jar"       (extension suffix)
+    "**/foo"      -> "**/foo"         (already a glob, pass through)
+    """
+    out = []
+    for n in names:
+        if "*" in n or "/" in n:
+            out.append(n)
+        elif n.startswith("."):
+            out.append(f"**/*{n}")
+        else:
+            out.append(f"**/{n}")
+    return out
+
+
 def discover_all(
     config: Config, gate: Gate, extra_names: list[str], report: ScanReport
 ) -> FileIndex:
     """Single filesystem pass returning a FileIndex for binary + ecosystem catalogers."""
-    extra_gate = Gate(extra_names) if extra_names else None
+    extra_gate = Gate(_names_to_globs(extra_names)) if extra_names else None
 
     excluded_prefixes = walk.excluded_mount_prefixes(config.exclude_fs_types)
     all_paths: set[str] = set()

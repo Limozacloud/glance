@@ -22,7 +22,14 @@ from __future__ import annotations
 import logging
 import time
 
-from .catalogers import ECOSYSTEM_CATALOGERS, PACKAGE_CATALOGERS, BinaryCataloger, expand_catalogers
+from .catalogers import (
+    ECOSYSTEM_INSTALLED_CATALOGERS,
+    ECOSYSTEM_PROJECT_CATALOGERS,
+    PACKAGE_CATALOGERS,
+    BinaryCataloger,
+    GoBinaryCataloger,
+    expand_catalogers,
+)
 from .classifiers.core.loader import load_classifier_file
 from .classifiers.linux_binary import default_classifiers
 from .config import Config, Engine, OnStaleDB
@@ -105,11 +112,29 @@ def scan(config: Config | None = None) -> ScanResult:
 
     # 2+3) unified discovery — one filesystem pass for binary + all ecosystem catalogers
     eco_paths = config.include_paths or []
-    eco_catalogers = {
-        name: cataloger_cls(paths=eco_paths, config=config)
-        for name, cataloger_cls in ECOSYSTEM_CATALOGERS.items()
-        if enabled is None or name in enabled
-    }
+
+    # Pick the active ecosystem cataloger set:
+    # - No explicit --catalogers (enabled is None) or "ecosystem" sentinel in enabled
+    #   → use ecosystem_mode to select project vs installed set.
+    # - Explicit individual cataloger names → run exactly those (user override).
+    _all_eco = {**ECOSYSTEM_PROJECT_CATALOGERS, **ECOSYSTEM_INSTALLED_CATALOGERS}
+    _eco_sentinel = "ecosystem" in (enabled or set())
+    if enabled is None or _eco_sentinel:
+        _active_eco = (
+            ECOSYSTEM_INSTALLED_CATALOGERS
+            if config.ecosystem_mode == "installed"
+            else ECOSYSTEM_PROJECT_CATALOGERS
+        )
+        eco_catalogers = {
+            name: cls(paths=eco_paths, config=config) for name, cls in _active_eco.items()
+        }
+    else:
+        eco_catalogers = {
+            name: cls(paths=eco_paths, config=config)
+            for name, cls in _all_eco.items()
+            if name in enabled
+        }
+
     extra_names: list[str] = [
         n for cat in eco_catalogers.values() for n in cat.manifest_filenames()
     ]
@@ -128,15 +153,14 @@ def scan(config: Config | None = None) -> ScanResult:
         report.catalogers.append(CatalogerStatus("binary", False, detail="disabled by config"))
         file_idx = discover_all(config, gate, extra_names, report)
 
-    for name, cataloger in eco_catalogers.items():
-        if enabled is not None and name not in enabled:
-            report.catalogers.append(CatalogerStatus(name, False, detail="disabled by config"))
-            continue
-        components.extend(cataloger.catalog(report, index=file_idx))
+    if enabled is None or "gobinary" in enabled:
+        go_comps = GoBinaryCataloger().catalog(config.include_paths or ["/"], report)
+        components.extend(go_comps)
+    else:
+        report.catalogers.append(CatalogerStatus("gobinary", False, detail="disabled by config"))
 
-    for name in ECOSYSTEM_CATALOGERS:
-        if name not in eco_catalogers and (enabled is not None and name not in enabled):
-            report.catalogers.append(CatalogerStatus(name, False, detail="disabled by config"))
+    for name, cataloger in eco_catalogers.items():
+        components.extend(cataloger.catalog(report, index=file_idx))
 
     report.duration_seconds = time.perf_counter() - start
     return ScanResult(components=components, report=report)

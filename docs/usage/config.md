@@ -6,7 +6,7 @@ glance accepts a YAML or JSON config file (`--config FILE`) or `Config` object i
 
 ```yaml
 # Paths to scan — the binary cataloger walks these for ELF/PE files;
-# ecosystem catalogers search here for lock files.
+# ecosystem catalogers search here for manifests and install stores.
 # Default (Linux): ["/"]
 # Default (Windows): all mounted drive letters, e.g. ["C:\\", "D:\\", "E:\\"]
 include_paths:
@@ -53,8 +53,16 @@ max_db_age_hours: 24
 on_stale_db: fallback
 
 # Which catalogers to run. null = all applicable.
-# Accepts individual names or group aliases (software, binary, ecosystem, all).
+# Accepts individual names or group aliases (software, binary, ecosystem,
+# ecosystem-installed, ecosystem-project, all).
 catalogers: null
+
+# Controls which ecosystem catalogers the "ecosystem" group alias resolves to.
+#   installed (default) — reads actual install stores: dist-info, node_modules,
+#                         JARs (pom.properties), gemspecs. Use for server/container scans.
+#   project             — reads lock/manifest files: requirements.txt, go.sum,
+#                         package-lock.json, pom.xml, Gemfile.lock. Use for repo/CI scans.
+ecosystem_mode: installed
 
 # Correlate binary finds against package DBs to mark them managed/unmanaged.
 correlate_ownership: true
@@ -98,6 +106,7 @@ from glance import Config, Engine
 config = Config(
     include_paths=["/opt/apps"],
     catalogers=["ecosystem", "binary"],
+    ecosystem_mode="installed",   # "project" for repo scans
     engine=Engine.WALK,
     max_db_age_hours=48,
 )

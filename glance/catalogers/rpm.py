@@ -11,27 +11,55 @@ scope for v1.
 from __future__ import annotations
 
 import logging
+import re
 import shutil
 import subprocess
 from urllib.parse import quote
 
 from ..models import CatalogerStatus, Component, ComponentType, ScanReport, Source
-from ._distro import distro_id
+from ._distro import distro_id, distro_version_id
 
 log = logging.getLogger(__name__)
 
-_QF = r"%{NAME}\t%{EPOCH}\t%{VERSION}\t%{RELEASE}\t%{ARCH}\n"
+_QF = r"%{NAME}\t%{EPOCH}\t%{VERSION}\t%{RELEASE}\t%{ARCH}\t%{SOURCERPM}\n"
 _SQLITE_DB = "/var/lib/rpm/rpmdb.sqlite"
 
 
-def _purl(name: str, epoch: str, version: str, release: str, arch: str) -> str:
-    namespace = distro_id() or "redhat"
+def _sourcerpm_name(sourcerpm: str) -> str:
+    """Extract source package name from SOURCERPM field.
+
+    ``openssl-3.0.7-18.el9_2.src.rpm`` → ``openssl``
+    """
+    if sourcerpm.endswith(".src.rpm"):
+        sourcerpm = sourcerpm[:-8]
+    # strip -version-release suffix: first component starting with a digit
+    return re.sub(r"-[0-9].*$", "", sourcerpm)
+
+
+_DISTRO_NAMESPACE = {
+    "rhel": "redhat",
+    "centos": "redhat",
+    "almalinux": "almalinux",
+    "rocky": "rocky",
+}
+
+
+def _purl(name: str, epoch: str, version: str, release: str, arch: str, sourcerpm: str = "") -> str:
+    _id = distro_id() or "redhat"
+    namespace = _DISTRO_NAMESPACE.get(_id, _id)
     purl = f"pkg:rpm/{namespace}/{quote(name)}@{quote(version)}-{quote(release)}"
     params = []
     if arch and arch != "(none)":
         params.append(f"arch={quote(arch)}")
     if epoch and epoch not in ("(none)", "0", ""):
         params.append(f"epoch={quote(epoch)}")
+    version_id = distro_version_id()
+    if version_id:
+        params.append(f"distro={quote(namespace)}-{quote(version_id)}")
+    if sourcerpm and sourcerpm not in ("(none)", ""):
+        upstream = _sourcerpm_name(sourcerpm)
+        if upstream and upstream != name:
+            params.append(f"upstream={quote(upstream)}")
     if params:
         purl += "?" + "&".join(params)
     return purl
@@ -76,12 +104,12 @@ class RpmCataloger:
             return components
         for line in proc.stdout.splitlines():
             parts = line.split("\t")
-            if len(parts) != 5:
+            if len(parts) != 6:
                 continue
-            name, epoch, version, release, arch = parts
+            name, epoch, version, release, arch, sourcerpm = parts
             if not name or not version:
                 continue
-            purl = _purl(name, epoch, version, release, arch)
+            purl = _purl(name, epoch, version, release, arch, sourcerpm)
             components.append(
                 Component(
                     name=name,
@@ -114,7 +142,7 @@ class RpmCataloger:
             )
             if proc.returncode == 0:
                 parts = proc.stdout.strip().split("\t")
-                if len(parts) == 5 and parts[0]:
+                if len(parts) == 6 and parts[0]:
                     result = _purl(*parts)
         except OSError:
             result = None

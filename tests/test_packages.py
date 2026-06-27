@@ -94,7 +94,10 @@ def test_rpm_catalog_mocked(monkeypatch):
     cat.rpm = "/usr/bin/rpm"
 
     def fake_run(cmd, **kwargs):
-        out = "openssl-libs\t1\t3.0.7\t1.el9\tx86_64\nzlib\t(none)\t1.2.11\t40.el9\tx86_64\n"
+        out = (
+            "openssl-libs\t1\t3.0.7\t1.el9\tx86_64\topenssl-3.0.7-1.el9.src.rpm\n"
+            "zlib\t(none)\t1.2.11\t40.el9\tx86_64\tzlib-1.2.11-40.el9.src.rpm\n"
+        )
         return subprocess.CompletedProcess(cmd, 0, stdout=out, stderr="")
 
     monkeypatch.setattr(rpm_mod.subprocess, "run", fake_run)
@@ -104,6 +107,7 @@ def test_rpm_catalog_mocked(monkeypatch):
     assert ol.version == "3.0.7-1.el9"
     assert ol.purl.startswith("pkg:rpm/")
     assert "epoch=1" in ol.purl
+    assert "upstream=openssl" in ol.purl
 
 
 def test_rpm_owner_mocked(monkeypatch):
@@ -112,7 +116,10 @@ def test_rpm_owner_mocked(monkeypatch):
 
     def fake_run(cmd, **kwargs):
         return subprocess.CompletedProcess(
-            cmd, 0, stdout="openssl-libs\t1\t3.0.7\t1.el9\tx86_64\n", stderr=""
+            cmd,
+            0,
+            stdout="openssl-libs\t1\t3.0.7\t1.el9\tx86_64\topenssl-3.0.7-1.el9.src.rpm\n",
+            stderr="",
         )
 
     monkeypatch.setattr(rpm_mod.subprocess, "run", fake_run)
