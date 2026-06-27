@@ -1,9 +1,6 @@
 from __future__ import annotations
 
 import mmap
-import os
-
-import pytest
 
 from glance.catalogers.gobinary import GoBinaryCataloger, _is_elf, _parse_buildinfo, _purl
 from glance.models import ComponentType, ScanReport, Source
