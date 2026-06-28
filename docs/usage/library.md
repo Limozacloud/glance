@@ -21,6 +21,7 @@ from glance import scan, Config, Engine
 result = scan(Config(
     include_paths=["/opt/myapp"],
     catalogers=["ecosystem", "binary"],   # groups expand automatically
+    ecosystem_mode="installed",           # "project" for lock-file scans
     engine=Engine.WALK,
 ))
 ```
@@ -39,7 +40,9 @@ result.timestamp    # float — unix timestamp
 c.name          # str   — e.g. "openssl"
 c.version       # str | None
 c.type          # ComponentType — APPLICATION or LIBRARY
-c.source        # Source — rpm, dpkg, apk, registry, binary, pip, go, npm, …
+c.source        # Source — rpm, dpkg, apk, registry, binary, win_binary, gobinary,
+                #          distinfo, node_installed, jar, gem_installed,
+                #          pip, go, npm, nuget, maven, gem
 c.purl          # str | None — pkg:generic/openssl@1.1.1w
 c.cpes          # list[str] — versioned CPE strings
 c.managed       # bool | None — True if owned by a package manager

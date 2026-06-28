@@ -77,8 +77,18 @@ locate_db_path: null
 # ---------------------------------------------------------------------------
 
 # Which catalogers to run. null = all applicable on this host.
-# Options: binary, rpm, dpkg, apk
+# Groups: software, binary, ecosystem, ecosystem-installed, ecosystem-project, all
+# Individuals: dpkg, rpm, apk, registry, binary, win_binary, gobinary,
+#              distinfo, node_installed, jar, gem_installed,
+#              pip, go, npm, nuget, maven, gem
 catalogers: null
+
+# Controls which catalogers the "ecosystem" group resolves to.
+#   installed (default) — reads actual install stores (dist-info, node_modules,
+#                         JARs via pom.properties, gemspecs)
+#   project             — reads lock/manifest files (requirements.txt, go.sum,
+#                         package-lock.json, pom.xml, Gemfile.lock)
+ecosystem_mode: installed
 
 # Correlate binary finds against package-DB file ownership (managed/unmanaged).
 correlate_ownership: true
@@ -88,6 +98,23 @@ correlate_ownership: true
 # classifier_files:
 #   - /etc/glance/extra-classifiers.yaml
 classifier_files: []
+
+# External extension file: additional cataloger plugins (YAML/JSON).
+extension_file: null
+
+# ---------------------------------------------------------------------------
+# Windows-specific
+# ---------------------------------------------------------------------------
+
+# PE file extensions scanned by win_binary.
+win_pe_extensions:
+  - .dll
+  - .exe
+  - .sys
+
+# Discovery engine for Windows binary scanning.
+# auto | mft | walk
+win_binary_engine: auto
 
 # ---------------------------------------------------------------------------
 # Content scan

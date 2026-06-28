@@ -102,7 +102,7 @@ config -> discovery -> scanner (binary) ┐
 ## Configuration
 
 A full, commented reference ships at
-[`glance/data/default_config.yaml`](glance/data/default_config.yaml). All keys
+[`glance/default_config.yaml`](glance/default_config.yaml). All keys
 are optional; the same defaults live in code. Present keys override the default,
 absent keys keep it, and an unknown key is a hard error.
 

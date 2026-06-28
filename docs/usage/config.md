@@ -70,6 +70,15 @@ correlate_ownership: true
 # Extra classifier YAML/JSON files loaded in addition to the built-ins.
 classifier_files: []
 
+# External extension file: additional cataloger plugins (YAML/JSON).
+extension_file: null
+
+# Follow symlinks during filesystem walk. Default: false.
+follow_symlinks: false
+
+# Use a specific locate DB instead of probing standard paths. null = probe.
+locate_db_path: null
+
 # Skip content scan for files larger than this (bytes). Default: 200 MB.
 max_file_size: 209715200
 
@@ -82,6 +91,19 @@ compute_sha256: false
 
 # Logging level: DEBUG, INFO, WARNING, ERROR
 log_level: INFO
+
+# ---------------------------------------------------------------------------
+# Windows-specific
+# ---------------------------------------------------------------------------
+
+# PE file extensions scanned by win_binary.
+win_pe_extensions:
+  - .dll
+  - .exe
+  - .sys
+
+# Discovery engine for Windows binary scanning: auto | mft | walk
+win_binary_engine: auto
 ```
 
 ## Minimal example
