@@ -54,15 +54,26 @@ A flat JSON array — one object per component, no CycloneDX envelope. Designed 
 
 Fields: `name`, `version`, `purl`, `cpe` (if available), `path` (if available), `source`.
 
+**Version format by ecosystem:**
+
+| Source | `version` format | Example |
+|---|---|---|
+| RPM | `epoch:version-release` or `version-release` | `1:3.0.7-18.el9`, `3.0.7-18.el9` |
+| DEB/APK | `version` | `3.0.11-1~deb12u2` |
+| Binary | version extracted from file content | `3.2.4` |
+| PyPI/npm/… | package manager version | `2.28.1` |
+
+RPM packages include the epoch prefix (`1:`) when the package carries a non-zero epoch. Packages without an epoch field or with epoch `0` use the plain `version-release` form.
+
 ```json
 [
   {
-    "name": "openssl",
-    "version": "1.1.0",
-    "purl": "pkg:generic/openssl@1.1.0",
-    "cpe": "cpe:2.3:a:openssl:openssl:1.1.0:*:*:*:*:*:*:*",
-    "path": "C:\\Program Files\\Insta360 Studio\\libcryptoMD.dll",
-    "source": "binary"
+    "name": "openssl-libs",
+    "version": "1:3.0.7-18.el9",
+    "purl": "pkg:rpm/redhat/openssl-libs@3.0.7-18.el9?epoch=1&arch=x86_64&distro=redhat-9",
+    "cpe": "cpe:2.3:a:openssl:openssl:3.0.7:*:*:*:*:*:*:*",
+    "path": "/usr/lib64/libssl.so.3",
+    "source": "rpm"
   },
   {
     "name": "requests",

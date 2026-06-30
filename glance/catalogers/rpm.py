@@ -110,10 +110,15 @@ class RpmCataloger:
             if not name or not version:
                 continue
             purl = _purl(name, epoch, version, release, arch, sourcerpm)
+            version_str = (
+                f"{epoch}:{version}-{release}"
+                if epoch and epoch not in ("(none)", "0", "")
+                else f"{version}-{release}"
+            )
             components.append(
                 Component(
                     name=name,
-                    version=f"{version}-{release}",
+                    version=version_str,
                     type=ComponentType.LIBRARY,
                     source=Source.RPM,
                     purl=purl,
