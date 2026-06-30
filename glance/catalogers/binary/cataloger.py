@@ -46,8 +46,13 @@ def _build_cpes(templates: list[str], version: str | None) -> list[str]:
 class BinaryCataloger:
     name = "binary"
 
-    def __init__(self, classifiers: list[Classifier] | None = None) -> None:
+    def __init__(
+        self,
+        classifiers: list[Classifier] | None = None,
+        container_map: dict | None = None,
+    ) -> None:
         self.classifiers = classifiers if classifiers is not None else default_classifiers()
+        self._container_map: dict = container_map or {}
 
     def catalog(self, candidates: set[str], config: Config, report: ScanReport) -> list[Component]:
         ordered = sorted(candidates)
@@ -96,7 +101,13 @@ class BinaryCataloger:
                     mm.close()
 
     def _record(self, merged, identity, result, classifier, path, sha, order) -> None:
+        from ...discovery.containers import container_for_path
+
         version = result.version
+        meta: dict = {"classifier_order": order}
+        cinfo = container_for_path(path, self._container_map)
+        if cinfo:
+            meta["container"] = cinfo["name"]
         component = Component(
             name=identity.package or classifier.package or classifier.cls,
             version=version,
@@ -108,7 +119,7 @@ class BinaryCataloger:
                 Occurrence(path=path, found_by=classifier.cls, evidence=result.evidence, sha256=sha)
             ],
             managed=None,
-            metadata={"classifier_order": order},
+            metadata=meta,
         )
         component.bom_ref = component.purl or f"{component.name}@{version}:{path}"
         key = component.key

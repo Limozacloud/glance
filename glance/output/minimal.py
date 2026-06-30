@@ -22,5 +22,8 @@ def to_minimal(result: ScanResult) -> list[dict]:
             entry["path"] = path
         if c.source:
             entry["source"] = c.source.value
+        container = c.metadata.get("container")
+        if container:
+            entry["container"] = container
         out.append(entry)
     return out
