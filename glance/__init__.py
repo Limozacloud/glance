@@ -77,6 +77,7 @@ def scan(config: Config | None = None) -> ScanResult:
     gate = Gate(globs)
 
     from .discovery.containers import build_container_map
+
     container_map = build_container_map()
 
     raw_catalogers = expand_catalogers(config.catalogers) if config.catalogers is not None else None
@@ -154,7 +155,9 @@ def scan(config: Config | None = None) -> ScanResult:
     if enabled is None or "binary" in enabled:
         file_idx = discover_all(config, gate, extra_names, report)
         binary_candidates = file_idx.matching_gate(gate)
-        binary_components = BinaryCataloger(classifiers, container_map=container_map).catalog(binary_candidates, config, report)
+        binary_components = BinaryCataloger(classifiers, container_map=container_map).catalog(
+            binary_candidates, config, report
+        )
         resolver = OwnershipResolver(file_index, rpm_owner)
         correlated = correlate(
             binary_components, resolver, report, enabled=config.correlate_ownership

@@ -27,14 +27,20 @@ def _inspect_containers() -> list[dict]:
     try:
         ids = subprocess.run(
             [_DOCKER, "ps", "-q"],
-            capture_output=True, text=True, check=False, timeout=5,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=5,
         )
         if ids.returncode != 0 or not ids.stdout.strip():
             return []
         container_ids = ids.stdout.split()
         result = subprocess.run(
             [_DOCKER, "inspect"] + container_ids,
-            capture_output=True, text=True, check=False, timeout=10,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=10,
         )
         if result.returncode != 0:
             return []
@@ -60,11 +66,7 @@ def build_container_map() -> dict[str, dict]:
     result: dict[str, dict] = {}
     for c in containers:
         try:
-            merged = (
-                c.get("GraphDriver", {})
-                .get("Data", {})
-                .get("MergedDir", "")
-            )
+            merged = c.get("GraphDriver", {}).get("Data", {}).get("MergedDir", "")
             if not merged:
                 continue
             name = c.get("Name", "").lstrip("/")
