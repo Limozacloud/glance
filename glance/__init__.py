@@ -43,7 +43,7 @@ try:  # pragma: no cover
 
     __version__ = _version("glance")
 except Exception:  # pragma: no cover
-    __version__ = "0.3.0"
+    __version__ = "0.4.0"
 
 __all__ = [
     "scan",
