@@ -104,7 +104,7 @@ def test_rpm_catalog_mocked(monkeypatch):
     comps = cat.catalog(ScanReport())
     assert {c.name for c in comps} == {"openssl-libs", "zlib"}
     ol = next(c for c in comps if c.name == "openssl-libs")
-    assert ol.version == "3.0.7-1.el9"
+    assert ol.version == "1:3.0.7-1.el9"
     assert ol.purl.startswith("pkg:rpm/")
     assert "epoch=1" in ol.purl
     assert "upstream=openssl" in ol.purl
