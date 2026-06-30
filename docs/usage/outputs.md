@@ -52,7 +52,7 @@ glance --format minimal --output findings.json
 
 A flat JSON array — one object per component, no CycloneDX envelope. Designed for quick triage, dashboards, or piping into `jq`.
 
-Fields: `name`, `version`, `purl`, `cpe` (if available), `path` (if available), `source`.
+Fields: `name`, `version`, `purl`, `cpe` (if available), `path` (if available), `source`, `container` (if binary found inside a Docker container).
 
 **Version format by ecosystem:**
 
@@ -74,6 +74,15 @@ RPM packages include the epoch prefix (`1:`) when the package carries a non-zero
     "cpe": "cpe:2.3:a:openssl:openssl:3.0.7:*:*:*:*:*:*:*",
     "path": "/usr/lib64/libssl.so.3",
     "source": "rpm"
+  },
+  {
+    "name": "mongodb",
+    "version": "6.0.28",
+    "purl": "pkg:generic/mongodb@6.0.28",
+    "cpe": "cpe:2.3:a:mongodb:mongodb:6.0.28:*:*:*:*:*:*:*",
+    "path": "/var/lib/docker/overlay2/abc123.../merged/usr/bin/mongod",
+    "source": "binary",
+    "container": "my-mongodb"
   },
   {
     "name": "requests",
