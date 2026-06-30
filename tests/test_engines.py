@@ -4,6 +4,7 @@ import os
 
 from glance.config import Config, Engine, OnStaleDB
 from glance.discovery import _select_engine, engines
+from glance.discovery import mft as _mft_mod
 from glance.discovery.engines import EngineInfo, anchors_for, literal_anchor
 from glance.models import ScanReport, SkipReason
 
@@ -45,6 +46,7 @@ def test_select_engine_fresh(monkeypatch, tmp_path):
 def test_select_engine_stale_falls_back(monkeypatch, tmp_path):
     eng = _fake_engine(tmp_path, age_hours=100.0)
     monkeypatch.setattr(engines, "detect_engines", lambda override=None: [eng])
+    monkeypatch.setattr(_mft_mod, "available", lambda: False)
     report = ScanReport()
     chosen = _select_engine(Config(max_db_age_hours=24, on_stale_db=OnStaleDB.FALLBACK), report)
     assert chosen is None
