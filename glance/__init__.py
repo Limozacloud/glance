@@ -30,7 +30,7 @@ from .catalogers import (
     GoBinaryCataloger,
     expand_catalogers,
 )
-from .classifiers.core.loader import load_classifier_file
+from .classifiers.core.loader import load_classifier_file_split
 from .classifiers.linux_binary import default_classifiers
 from .config import Config, Engine, OnStaleDB
 from .correlate import OwnershipResolver, correlate
@@ -66,8 +66,13 @@ def scan(config: Config | None = None) -> ScanResult:
     start = time.perf_counter()
 
     classifiers = default_classifiers()
+    registry_extra: list[dict] = []
+    win_binary_extra: list[dict] = []
     for path in config.classifier_files:
-        classifiers.extend(load_classifier_file(path))
+        bin_cls, reg_ent, wb_ent = load_classifier_file_split(path)
+        classifiers.extend(bin_cls)
+        registry_extra.extend(reg_ent)
+        win_binary_extra.extend(wb_ent)
     globs = config.file_globs or derive_globs(classifiers)
     gate = Gate(globs)
 
@@ -92,9 +97,13 @@ def scan(config: Config | None = None) -> ScanResult:
                 extensions=config.win_pe_extensions,
                 engine=config.win_binary_engine,
                 extension_file=config.extension_file,
+                extra_entries=win_binary_extra or None,
             )
         elif cataloger_cls is _Reg:
-            cataloger = cataloger_cls(extension_file=config.extension_file)  # type: ignore[assignment]
+            cataloger = cataloger_cls(  # type: ignore[assignment]
+                extension_file=config.extension_file,
+                extra_entries=registry_extra or None,
+            )
         else:
             cataloger = cataloger_cls()
         if not cataloger.available():

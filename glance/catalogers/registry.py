@@ -94,8 +94,13 @@ def _fill(template: str, version: str) -> str:
 class RegistryCataloger:
     name = "registry"
 
-    def __init__(self, extension_file: str | None = None) -> None:
+    def __init__(
+        self,
+        extension_file: str | None = None,
+        extra_entries: list[dict] | None = None,
+    ) -> None:
         self.extension_file = extension_file
+        self._extra_entries: list[dict] = list(extra_entries or [])
 
     def available(self) -> bool:
         return sys.platform == "win32"
@@ -117,6 +122,8 @@ class RegistryCataloger:
 
         try:
             index = _index(self.extension_file)
+            if self._extra_entries:
+                index = index + self._extra_entries
         except Exception as exc:
             report.catalogers.append(
                 CatalogerStatus(self.name, False, detail=f"failed to load CPE index: {exc}")
