@@ -176,11 +176,13 @@ class WinBinaryCataloger:
         extensions: list[str] | None = None,
         engine: str = "auto",
         extension_file: str | None = None,
+        extra_entries: list[dict] | None = None,
     ) -> None:
         self.paths = paths or DEFAULT_WIN_PATHS
         self.extensions = frozenset(e.lower() for e in (extensions or DEFAULT_PE_EXTENSIONS))
         self.engine = engine  # "auto" | "mft" | "walk"
         self.extension_file = extension_file
+        self._extra_entries: list[dict] = list(extra_entries or [])
 
     def available(self) -> bool:
         return sys.platform == "win32"
@@ -221,6 +223,8 @@ class WinBinaryCataloger:
 
         try:
             index = _binary_index(self.extension_file)
+            if self._extra_entries:
+                index = index + self._extra_entries
         except Exception as exc:
             report.catalogers.append(
                 CatalogerStatus(self.name, False, detail=f"failed to load binary index: {exc}")

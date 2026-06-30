@@ -67,10 +67,14 @@ ecosystem_mode: installed
 # Correlate binary finds against package DBs to mark them managed/unmanaged.
 correlate_ownership: true
 
-# Extra classifier YAML/JSON files loaded in addition to the built-ins.
+# Classifier extension files — teach glance to recognise additional software.
+# Each file may contain entries for any cataloger (linux_binary, windows_registry,
+# windows_binary) in a single list using the "cataloger" field.
+# See docs/extending/classifier.md for the full format.
 classifier_files: []
 
-# External extension file: additional cataloger plugins (YAML/JSON).
+# Legacy Windows-only extension file (registry.entries + binary.entries sections).
+# Prefer classifier_files with cataloger: windows_registry / windows_binary instead.
 extension_file: null
 
 # Follow symlinks during filesystem walk. Default: false.
