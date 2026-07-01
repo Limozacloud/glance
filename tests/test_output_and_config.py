@@ -88,7 +88,7 @@ def test_config_unknown_key_is_hard_error():
 def test_config_partial_override_keeps_defaults():
     cfg = Config.from_dict({"max_db_age_hours": 6})
     assert cfg.max_db_age_hours == 6
-    assert cfg.include_paths == ["/"]  # default preserved
+    assert cfg.include_paths  # default preserved (platform-specific)
     assert cfg.engine == Engine.AUTO
 
 

@@ -35,6 +35,9 @@ def _properties(comp: Component) -> list[dict]:
         if occ.sha256:
             props.append({"name": "glance:sha256", "value": occ.sha256})
             break
+    container = comp.metadata.get("container")
+    if container:
+        props.append({"name": "glance:container", "value": container})
     return props
 
 
