@@ -8,7 +8,7 @@ import logging
 import sys
 
 from . import __version__, scan
-from .config import Config, Engine
+from .config import Config
 from .output import report_to_dict, to_cyclonedx, to_minimal, to_native
 
 
@@ -20,11 +20,6 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     p.add_argument("--config", metavar="FILE", help="YAML or JSON config file.")
-    p.add_argument(
-        "--engine",
-        choices=[e.value for e in Engine],
-        help="Override discovery engine (default: auto cascade).",
-    )
     p.add_argument(
         "--include",
         action="append",
@@ -65,8 +60,6 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def _make_config(args: argparse.Namespace) -> Config:
     config = Config.from_file(args.config) if args.config else Config()
-    if args.engine:
-        config.engine = Engine(args.engine)
     if args.include:
         config.include_paths = list(args.include)
     if args.catalogers:

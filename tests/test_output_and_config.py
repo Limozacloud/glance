@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from glance.config import Config, Engine, OnStaleDB
+from glance.config import Config
 from glance.models import (
     Component,
     ComponentType,
@@ -86,29 +86,22 @@ def test_config_unknown_key_is_hard_error():
 
 
 def test_config_partial_override_keeps_defaults():
-    cfg = Config.from_dict({"max_db_age_hours": 6})
-    assert cfg.max_db_age_hours == 6
-    assert cfg.include_paths  # default preserved (platform-specific)
-    assert cfg.engine == Engine.AUTO
-
-
-def test_config_enum_coercion():
-    cfg = Config.from_dict({"engine": "walk", "on_stale_db": "warn"})
-    assert cfg.engine == Engine.WALK
-    assert cfg.on_stale_db == OnStaleDB.WARN
+    cfg = Config.from_dict({"max_file_size": 1024})
+    assert cfg.max_file_size == 1024
+    assert cfg.exclude_fs_types  # default preserved
 
 
 def test_config_from_json_file(tmp_path):
     p = tmp_path / "c.json"
-    p.write_text('{"engine": "plocate", "max_file_size": 1024}', encoding="utf-8")
+    p.write_text('{"max_file_size": 1024, "plocate_binary": "/opt/plocate"}', encoding="utf-8")
     cfg = Config.from_file(str(p))
-    assert cfg.engine == Engine.PLOCATE
     assert cfg.max_file_size == 1024
+    assert cfg.plocate_binary == "/opt/plocate"
 
 
 def test_config_from_yaml_file(tmp_path):
     p = tmp_path / "c.yaml"
-    p.write_text("engine: mlocate\ninclude_paths:\n  - /opt\n", encoding="utf-8")
+    p.write_text("plocate_binary: /opt/limoza/bin/plocate\nlocate_db_path: /var/lib/limoza/plocate.db\n", encoding="utf-8")
     cfg = Config.from_file(str(p))
-    assert cfg.engine == Engine.MLOCATE
-    assert cfg.include_paths == ["/opt"]
+    assert cfg.plocate_binary == "/opt/limoza/bin/plocate"
+    assert cfg.locate_db_path == "/var/lib/limoza/plocate.db"

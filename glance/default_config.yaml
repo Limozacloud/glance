@@ -10,15 +10,11 @@
 # Scope
 # ---------------------------------------------------------------------------
 
-# Root paths to scan (the surface). Used by the walk fallback; with a locate
-# engine these bound which results are kept.
-include_paths:
-  - /
-
-# Extra paths to exclude (prefix match).
+# Paths to exclude from results (prefix match).
 exclude_paths: []
 
-# Filesystem types never scanned — network shares and virtual filesystems.
+# Filesystem types excluded from results — plocate may index these but glance
+# will not return paths under their mount points.
 exclude_fs_types:
   - nfs
   - nfs4
@@ -35,17 +31,6 @@ exclude_fs_types:
   - squashfs
   - autofs
 
-# ALWAYS walked directly, regardless of engine, DB freshness or any customer
-# updatedb.conf pruning. Small and cheap; guarantees the locations that matter
-# are never silently excluded.
-mandatory_paths:
-  - /usr/lib
-  - /usr/lib64
-  - /lib
-  - /lib64
-  - /usr/local/lib
-  - /opt
-
 # The glob gate. null = derive from the active classifiers (recommended).
 # Example to narrow it:
 #   file_globs:
@@ -54,23 +39,35 @@ mandatory_paths:
 #     - "**/openssl"
 file_globs: null
 
-follow_symlinks: false
-
 # ---------------------------------------------------------------------------
-# Discovery engine
+# Discovery engine (Linux: plocate required)
 # ---------------------------------------------------------------------------
 
-# auto | plocate | mlocate | walk
-engine: auto
+# Path to the plocate binary. null = search $PATH.
+# Example: /opt/limoza/bin/plocate
+plocate_binary: null
 
-# A locate DB older than this (hours) is treated as not usable.
-max_db_age_hours: 24
-
-# What to do with a stale DB: fallback (cascade onward) | warn (use it anyway).
-on_stale_db: fallback
-
-# Use a specific locate DB instead of probing standard paths. null = probe.
+# Path to the plocate DB. null = /var/lib/plocate/plocate.db
+# Example: /var/lib/limoza/plocate.db
 locate_db_path: null
+
+# Explicit path to the plocate binary. null = search $PATH.
+# Set this when the agent ships a static plocate binary at a fixed path.
+# Example: /opt/limoza/bin/plocate
+plocate_binary: null
+
+# Explicit path to the updatedb binary paired with plocate_binary.
+# Glance does not call updatedb itself — this key is read by the agent to know
+# which binary to invoke when (re-)building the locate database.
+# Example: /opt/limoza/bin/updatedb
+updatedb_binary: null
+
+# Path to an updatedb.conf passed via --config-file when building the DB.
+# null = updatedb falls back to /etc/updatedb.conf on the target system,
+# which may prune paths or filesystems we need to scan.
+# Point this to the shipped default_updatedb.conf for deterministic coverage.
+# Example: /opt/limoza/etc/updatedb.conf
+updatedb_config: null
 
 # ---------------------------------------------------------------------------
 # Catalogers

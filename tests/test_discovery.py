@@ -1,9 +1,14 @@
 from __future__ import annotations
 
 import os
+import sys
 
-from glance.config import Config, Engine
-from glance.discovery import discover, walk
+import pytest
+
+from glance.config import Config
+from glance.discovery import discover_all
+from glance.discovery import engines
+from glance.discovery.engines import EngineInfo
 from glance.discovery.gate import Gate
 from glance.models import ScanReport, SkipReason
 
@@ -15,65 +20,71 @@ def _touch(path: str, data: bytes = b"x") -> str:
     return path
 
 
-def test_walk_reports_missing_root():
-    report = ScanReport()
-    list(
-        walk.walk_tree(
-            "/no/such/path",
-            follow_symlinks=False,
-            excluded_prefixes=[],
-            exclude_paths=[],
-            report=report,
-        )
-    )
-    assert any(s.reason == SkipReason.NOT_FOUND for s in report.skipped)
-
-
-def test_walk_honours_exclude_paths(tmp_path):
-    keep = _touch(str(tmp_path / "keep/libcrypto.so.1.1"))
-    _touch(str(tmp_path / "skip/libcrypto.so.1.1"))
-    report = ScanReport()
-    found = list(
-        walk.walk_tree(
-            str(tmp_path),
-            follow_symlinks=False,
-            excluded_prefixes=[],
-            exclude_paths=[str(tmp_path / "skip")],
-            report=report,
-        )
-    )
-    assert keep in found
-    assert any(s.reason == SkipReason.CONFIG_EXCLUDE_PATH for s in report.skipped)
-
-
-def test_discover_walk_engine_gates_candidates(tmp_path):
+@pytest.mark.skipif(sys.platform == "win32", reason="Linux plocate path only")
+def test_discover_linux_gates_candidates(monkeypatch, tmp_path):
     target = _touch(str(tmp_path / "opt/agent/libcrypto.so.1.1"))
     _touch(str(tmp_path / "opt/agent/notes.txt"))
+
+    fake_bin = tmp_path / "plocate"
+    fake_db = tmp_path / "plocate.db"
+    fake_bin.write_bytes(b"x")
+    fake_db.write_bytes(b"x")
+
     cfg = Config(
-        engine=Engine.WALK,
-        include_paths=[str(tmp_path)],
-        mandatory_paths=[],
+        plocate_binary=str(fake_bin),
+        locate_db_path=str(fake_db),
         file_globs=["**/libcrypto.so*"],
     )
+
+    engine = EngineInfo("plocate", str(fake_bin), str(fake_db))
+    monkeypatch.setattr(engines, "get_plocate", lambda _cfg: engine)
+    monkeypatch.setattr(
+        engines, "query", lambda _eng, _anchors: iter([target, str(tmp_path / "opt/agent/notes.txt")])
+    )
+
     gate = Gate(cfg.file_globs)
     report = ScanReport()
-    candidates = discover(cfg, gate, report)
-    assert target in candidates
-    assert all("libcrypto.so" in c for c in candidates)
-    assert report.engine_used == "walk"
-    assert report.files_considered >= 2
+    idx = discover_all(cfg, gate, [], report)
+
+    assert target in idx.all_paths
+    assert str(tmp_path / "opt/agent/notes.txt") not in idx.all_paths
+    assert report.engine_used == "plocate"
 
 
-def test_mandatory_paths_walked_even_with_engine(monkeypatch, tmp_path):
-    # force the locate branch off (no engines) but ensure mandatory path is walked
-    target = _touch(str(tmp_path / "mandatory/libssl.so.3"))
+@pytest.mark.skipif(sys.platform == "win32", reason="Linux path only")
+def test_discover_linux_exclude_paths(monkeypatch, tmp_path):
+    keep = str(tmp_path / "usr/lib/libssl.so.3")
+    skip = str(tmp_path / "mnt/nfs/libssl.so.3")
+
+    fake_bin = tmp_path / "plocate"
+    fake_db = tmp_path / "plocate.db"
+    fake_bin.write_bytes(b"x")
+    fake_db.write_bytes(b"x")
+
     cfg = Config(
-        engine=Engine.WALK,
-        include_paths=["/nonexistent-root"],
-        mandatory_paths=[str(tmp_path / "mandatory")],
+        plocate_binary=str(fake_bin),
+        locate_db_path=str(fake_db),
         file_globs=["**/libssl.so*"],
+        exclude_paths=[str(tmp_path / "mnt")],
     )
+
+    engine = EngineInfo("plocate", str(fake_bin), str(fake_db))
+    monkeypatch.setattr(engines, "get_plocate", lambda _cfg: engine)
+    monkeypatch.setattr(engines, "query", lambda _eng, _anchors: iter([keep, skip]))
+
     report = ScanReport()
-    candidates = discover(cfg, Gate(cfg.file_globs), report)
-    assert target in candidates
-    assert str(tmp_path / "mandatory") in report.mandatory_paths
+    idx = discover_all(cfg, Gate(cfg.file_globs), [], report)
+
+    assert keep in idx.all_paths
+    assert skip not in idx.all_paths
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Linux path only")
+def test_discover_linux_plocate_missing_raises(monkeypatch, tmp_path):
+    import shutil
+
+    monkeypatch.setattr(shutil, "which", lambda _: None)
+    cfg = Config(plocate_binary=None, locate_db_path=str(tmp_path / "missing.db"))
+
+    with pytest.raises(RuntimeError, match="plocate"):
+        discover_all(cfg, Gate(["**/libssl.so*"]), [], ScanReport())
