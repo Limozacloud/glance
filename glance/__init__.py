@@ -32,7 +32,7 @@ from .catalogers import (
 )
 from .classifiers.core.loader import load_classifier_file_split
 from .classifiers.linux_binary import default_classifiers
-from .config import Config, Engine, OnStaleDB
+from .config import Config
 from .correlate import OwnershipResolver, correlate
 from .discovery import discover_all
 from .discovery.gate import Gate, derive_globs
@@ -48,8 +48,6 @@ except Exception:  # pragma: no cover
 __all__ = [
     "scan",
     "Config",
-    "Engine",
-    "OnStaleDB",
     "ScanResult",
     "ScanReport",
     "Component",

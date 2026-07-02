@@ -13,26 +13,8 @@ import os
 import string
 import sys
 from dataclasses import dataclass, field, fields
-from enum import Enum
 from pathlib import Path
 from typing import Any
-
-
-class Engine(str, Enum):
-    """Discovery engine selection."""
-
-    AUTO = "auto"
-    PLOCATE = "plocate"
-    MLOCATE = "mlocate"
-    WALK = "walk"
-
-
-class OnStaleDB(str, Enum):
-    """What to do when a locate DB is older than ``max_db_age_hours``."""
-
-    FALLBACK = "fallback"
-    WARN = "warn"
-
 
 #: Filesystem types excluded by default — network shares and virtual filesystems
 #: that should never be walked.
@@ -51,18 +33,6 @@ DEFAULT_EXCLUDE_FS_TYPES = [
     "cgroup2",
     "squashfs",
     "autofs",
-]
-
-#: Paths that are ALWAYS walked directly, regardless of engine / DB freshness /
-#: customer updatedb.conf pruning. They are small and cheap, and guarantee the
-#: locations that matter most are never silently excluded.
-DEFAULT_MANDATORY_PATHS = [
-    "/usr/lib",
-    "/usr/lib64",
-    "/lib",
-    "/lib64",
-    "/usr/local/lib",
-    "/opt",
 ]
 
 
@@ -93,17 +63,18 @@ class Config:
     include_paths: list[str] = field(default_factory=lambda: list(DEFAULT_INCLUDE_PATHS))
     exclude_paths: list[str] = field(default_factory=list)
     exclude_fs_types: list[str] = field(default_factory=lambda: list(DEFAULT_EXCLUDE_FS_TYPES))
-    mandatory_paths: list[str] = field(default_factory=lambda: list(DEFAULT_MANDATORY_PATHS))
     #: Glob gate. ``None`` means "derive from the active classifiers" (default).
     file_globs: list[str] | None = None
-    follow_symlinks: bool = False
 
-    # --- discovery engine ------------------------------------------------------
-    engine: Engine = Engine.AUTO
-    max_db_age_hours: float = 24.0
-    on_stale_db: OnStaleDB = OnStaleDB.FALLBACK
-    #: Explicit locate DB path; ``None`` lets the engine probe standard locations.
+    # --- discovery engine (Linux: plocate required) ----------------------------
+    #: Path to the plocate binary. ``None`` searches $PATH.
+    plocate_binary: str | None = None
+    #: Path to the plocate DB. ``None`` uses /var/lib/plocate/plocate.db.
     locate_db_path: str | None = None
+    #: Path to the updatedb binary — read by the agent, not called by glance.
+    updatedb_binary: str | None = None
+    #: Path to an updatedb.conf for the agent's updatedb call.
+    updatedb_config: str | None = None
 
     # --- catalogers ------------------------------------------------------------
     #: Which catalogers to run. ``None`` = all that are applicable on this host.
@@ -159,12 +130,7 @@ class Config:
                 f"unknown config key(s): {', '.join(sorted(unknown))}. "
                 f"valid keys: {', '.join(sorted(known))}"
             )
-        kwargs: dict[str, Any] = dict(data)
-        if "engine" in kwargs and kwargs["engine"] is not None:
-            kwargs["engine"] = Engine(kwargs["engine"])
-        if "on_stale_db" in kwargs and kwargs["on_stale_db"] is not None:
-            kwargs["on_stale_db"] = OnStaleDB(kwargs["on_stale_db"])
-        return cls(**kwargs)
+        return cls(**data)
 
     @classmethod
     def from_file(cls, path: str | Path) -> Config:

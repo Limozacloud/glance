@@ -7,7 +7,8 @@ import pytest
 from glance import Config, scan
 from glance.catalogers.binary import BinaryCataloger
 from glance.classifiers.core.loader import classifiers_from_dicts, load_classifier_file
-from glance.config import Engine
+from glance.discovery import engines as _disc_engines
+from glance.discovery.engines import EngineInfo
 from glance.models import ScanReport
 
 FOO_BLOB = b"\x7fELF\x02\x01\x01" + b"\x00" * 16 + b"\x00FooLib 1.2.3\x00" + b"\x00" * 8
@@ -74,20 +75,31 @@ def test_load_json_bare_list(tmp_path):
     assert load_classifier_file(str(f))[0].package == "foo"
 
 
-def test_scan_uses_external_classifier_file(tmp_path):
-    f = tmp_path / "extra.json"
+def test_scan_uses_external_classifier_file(tmp_path, monkeypatch):
     import json
+    import sys
 
+    f = tmp_path / "extra.json"
     f.write_text(json.dumps([FOO_DEF]), encoding="utf-8")
-    _write(str(tmp_path / "opt/agent/libfoo.so.1"), FOO_BLOB)
+    target = _write(str(tmp_path / "opt/agent/libfoo.so.1"), FOO_BLOB)
+
     cfg = Config(
-        engine=Engine.WALK,
-        include_paths=[str(tmp_path)],
-        mandatory_paths=[],
         catalogers=["binary"],
         correlate_ownership=False,
         classifier_files=[str(f)],
     )
+
+    if sys.platform != "win32":
+        fake_bin = tmp_path / "plocate"
+        fake_db = tmp_path / "plocate.db"
+        fake_bin.write_bytes(b"x")
+        fake_db.write_bytes(b"x")
+        cfg.plocate_binary = str(fake_bin)
+        cfg.locate_db_path = str(fake_db)
+        engine = EngineInfo("plocate", str(fake_bin), str(fake_db))
+        monkeypatch.setattr(_disc_engines, "get_plocate", lambda _cfg: engine)
+        monkeypatch.setattr(_disc_engines, "query", lambda _eng, _anchors: iter([target]))
+
     result = scan(cfg)
     foos = [c for c in result.components if c.name == "foo"]
     assert foos and foos[0].version == "1.2.3"

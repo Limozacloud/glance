@@ -48,9 +48,6 @@ class SkipReason(str, Enum):
     CONFIG_FS_TYPE = "config:exclude_fs_type"
     PERMISSION_DENIED = "permission_denied"
     NOT_FOUND = "not_found"
-    DB_STALE = "db_stale"
-    DB_MISSING = "db_missing"
-    ENGINE_UNAVAILABLE = "engine_unavailable"
     CATALOGER_UNAVAILABLE = "cataloger_unavailable"
     MAX_FILE_SIZE = "max_file_size"
     NOT_ELF = "not_elf"
@@ -132,9 +129,7 @@ class ScanReport:
 
     engine_used: str | None = None
     engine_reason: str | None = None
-    engine_cascade: list[str] = field(default_factory=list)
     scanned_paths: list[str] = field(default_factory=list)
-    mandatory_paths: list[str] = field(default_factory=list)
     skipped: list[SkippedEntry] = field(default_factory=list)
     catalogers: list[CatalogerStatus] = field(default_factory=list)
     files_considered: int = 0
