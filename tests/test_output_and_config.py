@@ -40,7 +40,7 @@ def _result() -> ScanResult:
         depends_on=[lib.bom_ref],
     )
     report = ScanReport(engine_used="plocate")
-    report.skip("/mnt/nfs", SkipReason.CONFIG_FS_TYPE, "nfs")
+    report.skip("/proc/sys/kernel/random", SkipReason.PERMISSION_DENIED)
     return ScanResult(components=[lib, app], report=report, timestamp=1_700_000_000.0)
 
 
@@ -76,19 +76,19 @@ def test_native_output():
 def test_report_serialises_enums_as_values():
     data = report_to_dict(_result().report)
     text = json.dumps(data)  # must not raise
-    assert "config:exclude_fs_type" in text
-    assert data["skipped"][0]["reason"] == "config:exclude_fs_type"
+    assert "permission_denied" in text
+    assert data["skipped"][0]["reason"] == "permission_denied"
 
 
 def test_config_unknown_key_is_hard_error():
     with pytest.raises(ValueError, match="unknown config key"):
-        Config.from_dict({"include_paths": ["/usr"], "typo_key": 1})
+        Config.from_dict({"max_file_size": 1024, "typo_key": 1})
 
 
 def test_config_partial_override_keeps_defaults():
     cfg = Config.from_dict({"max_file_size": 1024})
     assert cfg.max_file_size == 1024
-    assert cfg.exclude_fs_types  # default preserved
+    assert cfg.correlate_ownership is True  # default preserved
 
 
 def test_config_from_json_file(tmp_path):

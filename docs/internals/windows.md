@@ -48,7 +48,7 @@ This is intentional: MSRC patches reference `FixedBuild` values that are compare
 **Source:** `glance/catalogers/win_binary.py`  
 **Data file:** `glance/data/win_binary_index.yaml`
 
-Walks PE binary files (`.dll`, `.exe`, `.sys`) in `include_paths` (default: `C:\Program Files`, `C:\Program Files (x86)`, `C:\ProgramData`).
+Walks PE binary files (`.dll`, `.exe`, `.sys`) in `C:\Program Files`, `C:\Program Files (x86)`, and `C:\ProgramData` (the walk engine default).
 
 ### Discovery pipeline
 

@@ -60,8 +60,8 @@ No prerequisites. glance enumerates the NTFS MFT directly (no index needed).
 # scan the whole system, write a CycloneDX SBOM
 glance --output sbom.json --report report.json
 
-# only the binary cataloger, narrow to a specific path
-glance --catalogers binary --include /opt --include /usr/lib64 --output sbom.json
+# only the binary cataloger
+glance --catalogers binary --output sbom.json
 
 # feed straight into a vulnerability scanner
 glance -o sbom.json && grype sbom:sbom.json
@@ -69,7 +69,6 @@ glance -o sbom.json && grype sbom:sbom.json
 
 ```
 --config FILE        YAML or JSON config file
---include PATH       root path to scan (repeatable)
 --catalogers LIST    groups: software, binary, ecosystem, ecosystem-installed,
                      ecosystem-project, all
                      individuals: dpkg, rpm, apk, registry, binary, win_binary,
@@ -89,6 +88,7 @@ result = scan(Config(
     plocate_binary="/opt/limoza/bin/plocate",
     locate_db_path="/var/lib/limoza/plocate.db",
 ))
+
 
 for c in result.components:
     print(c.name, c.version, c.purl, "managed" if c.managed else "UNMANAGED")
@@ -117,11 +117,11 @@ config → discovery (plocate / MFT) → FileIndex
    or `$PATH`) and the DB (`locate_db_path` or `/var/lib/plocate/plocate.db`).
    If either is missing a `RuntimeError` is raised — there is no walk fallback.
 2. **Substring anchors.** Each classifier's glob (e.g. `**/libcrypto.so*`) is
-   reduced to its longest literal fragment (`libcrypto.so`) and passed as a
-   plocate OR query. One subprocess call returns a superset.
+   reduced to its longest literal fragment (`libcrypto.so`). Each anchor is
+   queried in a separate plocate call (plocate treats multiple patterns as AND);
+   results are deduplicated into a superset.
 3. **Gate + scope filter.** Every path from plocate is checked against the glob
-   gate, `exclude_paths`, and `exclude_fs_types`. Only matching paths enter the
-   FileIndex.
+   gate. Only matching paths enter the FileIndex.
 4. **Content scan.** Only gated candidates are read, via `mmap`, and matched with
    pre-compiled **byte** regexes.
 5. **Correlation.** For each binary find, glance asks the package DBs *who owns
@@ -150,8 +150,6 @@ keep it, and an unknown key is a hard error.
 |-----|---------|---------|
 | `plocate_binary` | `null` | path to plocate; `null` searches `$PATH` |
 | `locate_db_path` | `null` | path to plocate DB; `null` uses `/var/lib/plocate/plocate.db` |
-| `exclude_paths` | `[]` | path prefixes never scanned |
-| `exclude_fs_types` | nfs, cifs, tmpfs, overlay, … | filesystem types never scanned |
 | `file_globs` | `null` (derive from classifiers) | the glob gate |
 | `catalogers` | `null` (all applicable) | group or individual cataloger names |
 | `ecosystem_mode` | `installed` | `installed` (dist-info/node_modules/JARs/gemspecs) or `project` (lock files) |

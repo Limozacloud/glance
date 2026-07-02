@@ -12,7 +12,7 @@ Two kinds of evidence, one unified CycloneDX SBOM:
 Quick start::
 
     from glance import scan, Config
-    result = scan(Config(include_paths=["/opt", "/usr/lib64"]))
+    result = scan(Config())
     for c in result.components:
         print(c.name, c.version, c.purl, c.managed)
 """
@@ -120,7 +120,6 @@ def scan(config: Config | None = None) -> ScanResult:
             rpm_owner = owner_fn
 
     # 2+3) unified discovery — one filesystem pass for binary + all ecosystem catalogers
-    eco_paths = config.include_paths or []
 
     # Pick the active ecosystem cataloger set:
     # - No explicit --catalogers (enabled is None) or "ecosystem" sentinel in enabled
@@ -134,14 +133,10 @@ def scan(config: Config | None = None) -> ScanResult:
             if config.ecosystem_mode == "installed"
             else ECOSYSTEM_PROJECT_CATALOGERS
         )
-        eco_catalogers = {
-            name: cls(paths=eco_paths, config=config) for name, cls in _active_eco.items()
-        }
+        eco_catalogers = {name: cls(paths=[], config=config) for name, cls in _active_eco.items()}
     else:
         eco_catalogers = {
-            name: cls(paths=eco_paths, config=config)
-            for name, cls in _all_eco.items()
-            if name in enabled
+            name: cls(paths=[], config=config) for name, cls in _all_eco.items() if name in enabled
         }
 
     extra_names: list[str] = [
@@ -165,7 +160,7 @@ def scan(config: Config | None = None) -> ScanResult:
         file_idx = discover_all(config, gate, extra_names, report)
 
     if enabled is None or "gobinary" in enabled:
-        go_comps = GoBinaryCataloger().catalog(config.include_paths or ["/"], report)
+        go_comps = GoBinaryCataloger().catalog(["/"], report)
         components.extend(go_comps)
     else:
         report.catalogers.append(CatalogerStatus("gobinary", False, detail="disabled by config"))

@@ -21,12 +21,6 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     p.add_argument("--config", metavar="FILE", help="YAML or JSON config file.")
     p.add_argument(
-        "--include",
-        action="append",
-        metavar="PATH",
-        help="Root path to scan (repeatable; overrides config include_paths).",
-    )
-    p.add_argument(
         "--catalogers",
         metavar="LIST",
         help=(
@@ -54,8 +48,6 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def _make_config(args: argparse.Namespace) -> Config:
     config = Config.from_file(args.config) if args.config else Config()
-    if args.include:
-        config.include_paths = list(args.include)
     if args.catalogers:
         config.catalogers = [c.strip() for c in args.catalogers.split(",") if c.strip()]
     if args.log_level:

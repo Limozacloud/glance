@@ -45,7 +45,7 @@ class NodeInstalledCataloger(EcosystemCataloger):
         found: list[str] = []
         seen: set[str] = set()
         for path in index.by_name("package.json"):
-            if path in seen or not self._in_scope(path) or not _is_installed(path):
+            if path in seen or not _is_installed(path):
                 continue
             seen.add(path)
             found.append(path)

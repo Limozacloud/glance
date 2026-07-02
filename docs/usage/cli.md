@@ -11,7 +11,6 @@ glance [OPTIONS]
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--config FILE` | — | YAML or JSON config file |
-| `--include PATH` | from config | Root path to scan. Repeatable. Overrides config `include_paths`. |
 | `--catalogers LIST` | all applicable | Comma-separated catalogers or group names (see below) |
 | `--format FORMAT` | `cyclonedx` | Output format: `cyclonedx` / `native` / `minimal` |
 | `--output FILE` | stdout | Write the SBOM here |
@@ -46,14 +45,8 @@ glance --catalogers software --format minimal --output win_software.json
 # Windows: full scan including bundled DLLs
 glance --catalogers software,binary --output sbom.json
 
-# Linux: narrow scope to /opt (plocate drives discovery)
-glance --catalogers binary --include /opt --output sbom.json
-
-# Scan a deployed application — installed packages (default ecosystem mode)
-glance --catalogers ecosystem --include /opt/myapp --output app_sbom.json
-
-# Scan a source repository — lock files and manifests
-glance --catalogers ecosystem-project --include /src/myrepo --output repo_sbom.json
+# Linux: ecosystem + binary (plocate must be pre-built by the agent)
+glance --catalogers ecosystem,binary --output sbom.json
 
 # Pipeline: scan then vulnerability-match
 glance -o sbom.json && grype sbom:sbom.json

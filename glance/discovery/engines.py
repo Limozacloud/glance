@@ -73,17 +73,25 @@ def anchors_for(globs: list[str]) -> tuple[list[str], list[str]]:
 def query(engine: EngineInfo, anchors: list[str]) -> Iterator[str]:
     """Stream candidate paths from plocate for the given substring anchors.
 
-    locate ORs multiple patterns — one invocation returns the union. Output is
-    NUL-separated to survive odd filenames.
+    plocate treats multiple patterns as AND (intersection), so each anchor is
+    queried in its own subprocess call. Results are deduplicated across calls.
+    Output is NUL-separated to survive odd filenames.
     """
     if not anchors:
         return
-    cmd = [engine.binary, "-0", "-d", engine.db_path, "--", *anchors]
-    try:
-        proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=False)
-    except OSError as exc:
-        log.warning("plocate query failed: %s", exc)
-        return
-    for raw in proc.stdout.split(b"\x00"):
-        if raw:
-            yield os.fsdecode(raw)
+    seen: set[str] = set()
+    for anchor in anchors:
+        cmd = [engine.binary, "-0", "-d", engine.db_path, "--", anchor]
+        try:
+            proc = subprocess.run(
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=False
+            )
+        except OSError as exc:
+            log.warning("plocate query failed: %s", exc)
+            continue
+        for raw in proc.stdout.split(b"\x00"):
+            if raw:
+                path = os.fsdecode(raw)
+                if path not in seen:
+                    seen.add(path)
+                    yield path

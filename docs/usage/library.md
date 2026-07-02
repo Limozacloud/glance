@@ -7,7 +7,7 @@ glance exposes a single public function: `scan()`.
 ```python
 from glance import scan, Config
 
-result = scan(Config(include_paths=["/opt", "/usr/lib64"]))
+result = scan(Config())
 
 for c in result.components:
     print(c.name, c.version, c.purl, c.managed)
@@ -16,13 +16,11 @@ for c in result.components:
 ## `scan(config)` → `ScanResult`
 
 ```python
-from glance import scan, Config, Engine
+from glance import scan, Config
 
 result = scan(Config(
-    include_paths=["/opt/myapp"],
     catalogers=["ecosystem", "binary"],   # groups expand automatically
     ecosystem_mode="installed",           # "project" for lock-file scans
-    engine=Engine.WALK,
 ))
 ```
 
@@ -92,9 +90,8 @@ glance is designed to be embedded. The library has no side effects outside of `s
 ```python
 from glance import scan, Config
 
-def collect_sbom(app_dir: str) -> dict:
+def collect_sbom() -> dict:
     result = scan(Config(
-        include_paths=[app_dir],
         catalogers=["ecosystem", "win_binary", "registry"],
     ))
     from glance.output import to_cyclonedx

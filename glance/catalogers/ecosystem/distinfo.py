@@ -58,8 +58,6 @@ class DistInfoCataloger(EcosystemCataloger):
                 continue
             if not self._is_dist_info_metadata(path):
                 continue
-            if not self._in_scope(path):
-                continue
             # intentionally NOT calling _in_skip_dir — we want venvs
             seen.add(path)
             found.append(path)

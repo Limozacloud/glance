@@ -53,34 +53,6 @@ def test_discover_linux_gates_candidates(monkeypatch, tmp_path):
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="Linux path only")
-def test_discover_linux_exclude_paths(monkeypatch, tmp_path):
-    keep = str(tmp_path / "usr/lib/libssl.so.3")
-    skip = str(tmp_path / "mnt/nfs/libssl.so.3")
-
-    fake_bin = tmp_path / "plocate"
-    fake_db = tmp_path / "plocate.db"
-    fake_bin.write_bytes(b"x")
-    fake_db.write_bytes(b"x")
-
-    cfg = Config(
-        plocate_binary=str(fake_bin),
-        locate_db_path=str(fake_db),
-        file_globs=["**/libssl.so*"],
-        exclude_paths=[str(tmp_path / "mnt")],
-    )
-
-    engine = EngineInfo("plocate", str(fake_bin), str(fake_db))
-    monkeypatch.setattr(engines, "get_plocate", lambda _cfg: engine)
-    monkeypatch.setattr(engines, "query", lambda _eng, _anchors: iter([keep, skip]))
-
-    report = ScanReport()
-    idx = discover_all(cfg, Gate(cfg.file_globs), [], report)
-
-    assert keep in idx.all_paths
-    assert skip not in idx.all_paths
-
-
-@pytest.mark.skipif(sys.platform == "win32", reason="Linux path only")
 def test_discover_linux_plocate_missing_raises(monkeypatch, tmp_path):
     import shutil
 

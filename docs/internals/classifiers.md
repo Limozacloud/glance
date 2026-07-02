@@ -91,8 +91,10 @@ Before classifiers run, `discover_all()` builds the candidate `FileIndex`:
 
 - **Linux** — `get_plocate(config)` validates the plocate binary and DB, then
   queries the DB with substring anchors derived from the classifier globs
-  (e.g. `**/libcrypto.so*` → anchor `libcrypto.so`). plocate returns a superset;
-  the glob gate is the sole authority on what enters the FileIndex.
+  (e.g. `**/libcrypto.so*` → anchor `libcrypto.so`). Each anchor is queried in
+  its own plocate call — plocate treats multiple patterns as AND (intersection),
+  so one call per anchor is required for correct OR/union behaviour. Results are
+  deduplicated. The glob gate is the sole authority on what enters the FileIndex.
   If plocate is not available, glance raises a `RuntimeError`.
 - **Windows** — MFT enumeration via `FSCTL_ENUM_USN_DATA`; no index needed.
 

@@ -39,8 +39,6 @@ class JarCataloger(EcosystemCataloger):
                 continue
             if not self._is_manifest(os.path.basename(path)):
                 continue
-            if not self._in_scope(path):
-                continue
             seen.add(path)
             found.append(path)
         return found

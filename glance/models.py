@@ -44,8 +44,6 @@ class SkipReason(str, Enum):
     omission is tagged with one of these.
     """
 
-    CONFIG_EXCLUDE_PATH = "config:exclude_path"
-    CONFIG_FS_TYPE = "config:exclude_fs_type"
     PERMISSION_DENIED = "permission_denied"
     NOT_FOUND = "not_found"
     CATALOGER_UNAVAILABLE = "cataloger_unavailable"
