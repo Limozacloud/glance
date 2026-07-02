@@ -46,8 +46,6 @@ class GemInstalledCataloger(EcosystemCataloger):
                 continue
             if not self._is_in_specifications(path):
                 continue
-            if not self._in_scope(path):
-                continue
             seen.add(path)
             found.append(path)
         return found
