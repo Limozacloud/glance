@@ -22,6 +22,10 @@ def to_native(result: ScanResult) -> dict:
                 "paths": [occ.path for occ in comp.occurrences],
                 "evidence": comp.occurrences[0].evidence if comp.occurrences else None,
                 "sha256": next((o.sha256 for o in comp.occurrences if o.sha256), None),
+                "container": comp.metadata.get("container"),
+                "container_id": comp.metadata.get("container_id"),
+                "container_image": comp.metadata.get("container_image"),
+                "container_provenance": comp.metadata.get("container_provenance"),
             }
         )
     return {"components": components}

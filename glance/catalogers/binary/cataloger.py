@@ -108,6 +108,9 @@ class BinaryCataloger:
         cinfo = container_for_path(path, self._container_map)
         if cinfo:
             meta["container"] = cinfo["name"]
+            meta["container_id"] = cinfo["id"]
+            meta["container_image"] = cinfo["image"]
+            meta["container_provenance"] = cinfo["provenance"]
         component = Component(
             name=identity.package or classifier.package or classifier.cls,
             version=version,

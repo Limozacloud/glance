@@ -25,5 +25,9 @@ def to_minimal(result: ScanResult) -> list[dict]:
         container = c.metadata.get("container")
         if container:
             entry["container"] = container
+            if c.metadata.get("container_image"):
+                entry["container_image"] = c.metadata["container_image"]
+            if c.metadata.get("container_provenance"):
+                entry["container_provenance"] = c.metadata["container_provenance"]
         out.append(entry)
     return out

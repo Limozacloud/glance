@@ -1,8 +1,12 @@
-"""Docker container discovery — builds a merged-path → container-info map.
+"""Container discovery — builds an overlay2-path → container-info map.
 
-Queries the Docker socket (if available) to find running containers and their
-overlay2 merged paths. Used by the binary cataloger to annotate finds with
-container context without any filesystem writes or exports.
+Queries Docker and Podman (if available) to find running and stopped containers
+and their overlay2 layer paths. Used by the binary cataloger to annotate finds
+with container context without any filesystem writes or exports.
+
+Path → provenance mapping:
+  MergedDir  → "running-merged"  (assembled overlay view of a live container)
+  UpperDir / LowerDir → "stopped-layer"  (raw layer data; container may be stopped)
 """
 
 from __future__ import annotations
@@ -14,19 +18,20 @@ import subprocess
 log = logging.getLogger(__name__)
 
 _DOCKER = "docker"
-_SOCKET = "/var/run/docker.sock"
+_PODMAN = "podman"
 
 
-def _docker_available() -> bool:
+def _runtime_available(binary: str) -> bool:
     import shutil
 
-    return shutil.which(_DOCKER) is not None
+    return shutil.which(binary) is not None
 
 
-def _inspect_containers() -> list[dict]:
+def _inspect_runtime(binary: str) -> list[dict]:
+    """Return docker/podman inspect output for all containers (running + stopped)."""
     try:
         ids = subprocess.run(
-            [_DOCKER, "ps", "-q"],
+            [binary, "ps", "-aq"],
             capture_output=True,
             text=True,
             check=False,
@@ -36,7 +41,7 @@ def _inspect_containers() -> list[dict]:
             return []
         container_ids = ids.stdout.split()
         result = subprocess.run(
-            [_DOCKER, "inspect"] + container_ids,
+            [binary, "inspect"] + container_ids,
             capture_output=True,
             text=True,
             check=False,
@@ -46,43 +51,87 @@ def _inspect_containers() -> list[dict]:
             return []
         return json.loads(result.stdout)
     except Exception as exc:
-        log.debug("container discovery failed: %s", exc)
+        log.debug("%s container discovery failed: %s", binary, exc)
         return []
 
 
-def build_container_map() -> dict[str, dict]:
-    """Return a mapping of overlay2 merged-path prefix → container info.
+def _add_container_to_map(result: dict[str, dict], c: dict) -> None:
+    """Insert all overlay2 paths for one container into the map."""
+    try:
+        gd = c.get("GraphDriver", {}).get("Data", {})
+        merged = gd.get("MergedDir", "")
+        upper = gd.get("UpperDir", "")
+        lower_raw = gd.get("LowerDir", "")
 
-    Returns an empty dict if Docker is not available or no containers are running.
-    Each value: ``{id, name, image}``.
+        name = c.get("Name", "").lstrip("/")
+        image = c.get("Config", {}).get("Image", "")
+        cid = c.get("Id", "")[:12]
+
+        # MergedDir only exists (and is mounted) when the container is running.
+        if merged:
+            result[merged] = {
+                "id": cid,
+                "name": name,
+                "image": image,
+                "provenance": "running-merged",
+            }
+
+        # UpperDir is the container's own writable layer — present for both running
+        # and stopped containers. First-write wins for shared image layers below.
+        layer_info = {"id": cid, "name": name, "image": image, "provenance": "stopped-layer"}
+        if upper:
+            result.setdefault(upper, layer_info)
+
+        # LowerDir is a colon-separated list of read-only image layers shared across
+        # containers that use the same base image. We only register a layer if no
+        # other container has claimed it first (first-write wins).
+        if lower_raw:
+            for layer in lower_raw.split(":"):
+                layer = layer.strip()
+                if layer:
+                    result.setdefault(layer, layer_info)
+
+    except Exception:
+        pass
+
+
+def build_container_map(report=None) -> dict[str, dict]:
+    """Return a mapping of overlay2 path prefix → container info.
+
+    Queries Docker and Podman (whichever is available). Includes both running
+    and stopped containers.
+
+    Returns an empty dict if no container runtime is reachable. If *report* is
+    provided (a ``ScanReport``), a warning is appended when no runtime is found.
+
+    Map values: ``{id, name, image, provenance}`` where provenance is one of
+    ``"running-merged"`` or ``"stopped-layer"``.
     """
-    if not _docker_available():
-        return {}
-
-    containers = _inspect_containers()
-    if not containers:
-        return {}
-
     result: dict[str, dict] = {}
-    for c in containers:
-        try:
-            merged = c.get("GraphDriver", {}).get("Data", {}).get("MergedDir", "")
-            if not merged:
-                continue
-            name = c.get("Name", "").lstrip("/")
-            image = c.get("Config", {}).get("Image", "")
-            cid = c.get("Id", "")[:12]
-            result[merged] = {"id": cid, "name": name, "image": image}
-        except Exception:
-            continue
+    found_any_runtime = False
 
-    log.debug("container map: %d running containers", len(result))
+    for binary in (_DOCKER, _PODMAN):
+        if not _runtime_available(binary):
+            continue
+        found_any_runtime = True
+        containers = _inspect_runtime(binary)
+        for c in containers:
+            _add_container_to_map(result, c)
+        if containers:
+            log.debug("%s: %d container(s) indexed", binary, len(containers))
+
+    if not found_any_runtime and report is not None:
+        report.warnings.append(
+            "container_map: no container runtime (docker/podman) reachable — "
+            "binary finds will not be attributed to containers"
+        )
+
     return result
 
 
 def container_for_path(path: str, container_map: dict[str, dict]) -> dict | None:
-    """Return container info if path is inside a known overlay2 merged dir."""
-    for merged, info in container_map.items():
-        if path.startswith(merged + "/") or path == merged:
+    """Return container info if path is inside a known overlay2 path prefix."""
+    for prefix, info in container_map.items():
+        if path.startswith(prefix + "/") or path == prefix:
             return info
     return None

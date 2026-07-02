@@ -76,7 +76,7 @@ def scan(config: Config | None = None) -> ScanResult:
 
     from .discovery.containers import build_container_map
 
-    container_map = build_container_map()
+    container_map = build_container_map(report=report)
 
     raw_catalogers = expand_catalogers(config.catalogers) if config.catalogers is not None else None
     enabled: set[str] | None = set(raw_catalogers) if raw_catalogers is not None else None

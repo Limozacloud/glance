@@ -38,6 +38,19 @@ def _properties(comp: Component) -> list[dict]:
     container = comp.metadata.get("container")
     if container:
         props.append({"name": "glance:container", "value": container})
+        if comp.metadata.get("container_id"):
+            props.append({"name": "glance:container_id", "value": comp.metadata["container_id"]})
+        if comp.metadata.get("container_image"):
+            props.append(
+                {"name": "glance:container_image", "value": comp.metadata["container_image"]}
+            )
+        if comp.metadata.get("container_provenance"):
+            props.append(
+                {
+                    "name": "glance:container_provenance",
+                    "value": comp.metadata["container_provenance"],
+                }
+            )
     return props
 
 
