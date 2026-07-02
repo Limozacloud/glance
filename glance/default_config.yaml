@@ -44,21 +44,18 @@ file_globs: null
 # ---------------------------------------------------------------------------
 
 # Path to the plocate binary. null = search $PATH.
-# Example: /opt/limoza/bin/plocate
-plocate_binary: null
-
-# Path to the plocate DB. null = /var/lib/plocate/plocate.db
-# Example: /var/lib/limoza/plocate.db
-locate_db_path: null
-
-# Explicit path to the plocate binary. null = search $PATH.
 # Set this when the agent ships a static plocate binary at a fixed path.
 # Example: /opt/limoza/bin/plocate
 plocate_binary: null
 
-# Explicit path to the updatedb binary paired with plocate_binary.
-# Glance does not call updatedb itself — this key is read by the agent to know
-# which binary to invoke when (re-)building the locate database.
+# Path to the plocate DB. null = /var/lib/plocate/plocate.db.
+# A RuntimeError is raised if the DB does not exist.
+# Example: /var/lib/limoza/plocate.db
+locate_db_path: null
+
+# Path to the updatedb binary. Glance does not call updatedb itself —
+# this key is read by the agent to know which binary to use when
+# (re-)building the locate database.
 # Example: /opt/limoza/bin/updatedb
 updatedb_binary: null
 

@@ -5,7 +5,7 @@ The **binary cataloger** (`glance/catalogers/binary/`) finds unmanaged ELF/PE bi
 ## How it works
 
 ```
-candidate path
+candidate path (from FileIndex)
      ↓
   Glob gate          file_globs match? (e.g. **/libcrypto.so*)
      ↓
@@ -20,7 +20,7 @@ candidate path
 
 ### Step 1: Glob gate (cheap)
 
-Before reading a single byte, the Gate checks whether the file's path matches any classifier's `file_globs`. This filter runs on every candidate from the discovery engine and is the primary performance lever — only matching paths proceed.
+Before reading a single byte, the Gate checks whether the file's path matches any classifier's `file_globs`. This filter runs on every candidate from the FileIndex and is the primary performance lever — only matching paths proceed.
 
 ```python
 # gate.py
@@ -85,14 +85,15 @@ Classifier(
 
 When the same file matches multiple classifiers (e.g. both `openssl-binary` and `openssl-library` match `libcrypto.so`), the results are merged into one `Component` with multiple `Occurrence` entries. The first matching classifier's identity wins; subsequent matches add occurrences but don't create duplicates.
 
-## Discovery engine cascade
+## Discovery
 
-Before classifiers run, `discover()` collects candidate paths:
+Before classifiers run, `discover_all()` builds the candidate `FileIndex`:
 
-1. **plocate** — query the plocate DB with the glob list (fast; returns a superset)
-2. **mlocate** — fallback if plocate is unavailable
-3. **walk** — full `os.walk` if no locate DB is usable
+- **Linux** — `get_plocate(config)` validates the plocate binary and DB, then
+  queries the DB with substring anchors derived from the classifier globs
+  (e.g. `**/libcrypto.so*` → anchor `libcrypto.so`). plocate returns a superset;
+  the glob gate is the sole authority on what enters the FileIndex.
+  If plocate is not available, glance raises a `RuntimeError`.
+- **Windows** — MFT enumeration via `FSCTL_ENUM_USN_DATA`; no index needed.
 
-`mandatory_paths` (e.g. `/usr/lib`, `/opt`) are **always** walked directly, regardless of which engine ran, to prevent locate DB pruning from hiding known-important paths.
-
-The gate runs on every path from every engine — so the engine only affects speed, never correctness.
+The gate runs on every path from every engine — so the discovery method only affects speed, never correctness.
