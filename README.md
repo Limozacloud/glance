@@ -117,8 +117,9 @@ config → discovery (plocate / MFT) → FileIndex
    or `$PATH`) and the DB (`locate_db_path` or `/var/lib/plocate/plocate.db`).
    If either is missing a `RuntimeError` is raised — there is no walk fallback.
 2. **Substring anchors.** Each classifier's glob (e.g. `**/libcrypto.so*`) is
-   reduced to its longest literal fragment (`libcrypto.so`) and passed as a
-   plocate OR query. One subprocess call returns a superset.
+   reduced to its longest literal fragment (`libcrypto.so`). Each anchor is
+   queried in a separate plocate call (plocate treats multiple patterns as AND);
+   results are deduplicated into a superset.
 3. **Gate + scope filter.** Every path from plocate is checked against the glob
    gate, `exclude_paths`, and `exclude_fs_types`. Only matching paths enter the
    FileIndex.
