@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/Limozacloud/glance/compare/glance-v0.5.0...glance-v0.5.1) (2026-07-02)
+
+
+### Bug Fixes
+
+* query plocate once per anchor (AND vs OR) ([#24](https://github.com/Limozacloud/glance/issues/24)) ([7326444](https://github.com/Limozacloud/glance/commit/7326444dc45645d20af62cb27b65bc4f7367007d))
+
 ## [0.5.0](https://github.com/Limozacloud/glance/compare/glance-v0.4.0...glance-v0.5.0) (2026-07-02)
 
 
