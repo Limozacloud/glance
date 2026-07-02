@@ -179,9 +179,9 @@ def test_fill_empty_version_becomes_wildcard():
 
 
 def test_real_index_loads():
-    from glance.catalogers.registry import _load_index
+    from glance.catalogers.registry import _index
 
-    entries = _load_index()
+    entries = _index()
     assert len(entries) > 10
     ids = {e["id"] for e in entries}
     assert "crowdstrike_falcon" in ids

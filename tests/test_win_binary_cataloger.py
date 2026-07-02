@@ -98,9 +98,9 @@ def test_match_fails_unrelated():
 
 
 def test_real_binary_index_loads():
-    from glance.catalogers.win_binary import _load_binary_index
+    from glance.catalogers.win_binary import _binary_index
 
-    entries = _load_binary_index()
+    entries = _binary_index()
     assert len(entries) >= 10
     ids = {e["id"] for e in entries}
     assert "openssl" in ids

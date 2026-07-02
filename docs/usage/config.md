@@ -81,10 +81,6 @@ correlate_ownership: true
 # See docs/extending/classifier.md for the full format.
 classifier_files: []
 
-# Legacy Windows-only extension file (registry.entries + binary.entries sections).
-# Prefer classifier_files with cataloger: windows_registry / windows_binary instead.
-extension_file: null
-
 # ---------------------------------------------------------------------------
 # Windows-specific
 # ---------------------------------------------------------------------------
