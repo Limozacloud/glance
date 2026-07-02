@@ -53,19 +53,6 @@ plocate_binary: null
 # Example: /var/lib/limoza/plocate.db
 locate_db_path: null
 
-# Path to the updatedb binary. Glance does not call updatedb itself —
-# this key is read by the agent to know which binary to use when
-# (re-)building the locate database.
-# Example: /opt/limoza/bin/updatedb
-updatedb_binary: null
-
-# Path to an updatedb.conf passed via --config-file when building the DB.
-# null = updatedb falls back to /etc/updatedb.conf on the target system,
-# which may prune paths or filesystems we need to scan.
-# Point this to the shipped default_updatedb.conf for deterministic coverage.
-# Example: /opt/limoza/etc/updatedb.conf
-updatedb_config: null
-
 # ---------------------------------------------------------------------------
 # Catalogers
 # ---------------------------------------------------------------------------

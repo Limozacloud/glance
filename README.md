@@ -150,8 +150,6 @@ keep it, and an unknown key is a hard error.
 |-----|---------|---------|
 | `plocate_binary` | `null` | path to plocate; `null` searches `$PATH` |
 | `locate_db_path` | `null` | path to plocate DB; `null` uses `/var/lib/plocate/plocate.db` |
-| `updatedb_binary` | `null` | path to updatedb — used by the agent to build the DB, not by glance |
-| `updatedb_config` | `null` | path to updatedb.conf for the agent's DB build |
 | `exclude_paths` | `[]` | path prefixes never scanned |
 | `exclude_fs_types` | nfs, cifs, tmpfs, overlay, … | filesystem types never scanned |
 | `file_globs` | `null` (derive from classifiers) | the glob gate |

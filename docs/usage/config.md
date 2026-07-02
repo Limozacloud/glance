@@ -47,15 +47,6 @@ plocate_binary: /opt/limoza/bin/plocate
 # null = /var/lib/plocate/plocate.db. A RuntimeError is raised if missing.
 locate_db_path: /var/lib/limoza/plocate.db
 
-# Path to the updatedb binary.
-# Glance does not call updatedb — the agent uses this to rebuild the DB.
-updatedb_binary: /opt/limoza/bin/updatedb
-
-# Path to an updatedb.conf for the agent's DB build.
-# null = updatedb uses /etc/updatedb.conf, which may prune important paths.
-# Point to the shipped glance/default_updatedb.conf for deterministic coverage.
-updatedb_config: /opt/limoza/etc/updatedb.conf
-
 # ---------------------------------------------------------------------------
 # Catalogers
 # ---------------------------------------------------------------------------

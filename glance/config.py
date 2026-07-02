@@ -71,10 +71,6 @@ class Config:
     plocate_binary: str | None = None
     #: Path to the plocate DB. ``None`` uses /var/lib/plocate/plocate.db.
     locate_db_path: str | None = None
-    #: Path to the updatedb binary — read by the agent, not called by glance.
-    updatedb_binary: str | None = None
-    #: Path to an updatedb.conf for the agent's updatedb call.
-    updatedb_config: str | None = None
 
     # --- catalogers ------------------------------------------------------------
     #: Which catalogers to run. ``None`` = all that are applicable on this host.
