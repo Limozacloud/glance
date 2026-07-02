@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.5.0](https://github.com/Limozacloud/glance/compare/glance-v0.4.0...glance-v0.5.0) (2026-07-02)
+
+
+### Features
+
+* **binary:** annotate container context in minimal output ([#16](https://github.com/Limozacloud/glance/issues/16)) ([dc70e1b](https://github.com/Limozacloud/glance/commit/dc70e1bf0ef0df8afc52908c16a4380dc538f436))
+* **output:** emit glance:container property in CycloneDX output ([#19](https://github.com/Limozacloud/glance/issues/19)) ([ab33934](https://github.com/Limozacloud/glance/commit/ab339346681fbabf5575cd0defd6d114c06c076c))
+* **rpm:** include epoch in Component.version for full EVR ([#17](https://github.com/Limozacloud/glance/issues/17)) ([21d5e19](https://github.com/Limozacloud/glance/commit/21d5e196512afb9970b22a6603b103ff6f38e900))
+
+
+### Documentation
+
+* remove stale engine/mandatory_paths refs from cli and config docs ([#22](https://github.com/Limozacloud/glance/issues/22)) ([05ae32f](https://github.com/Limozacloud/glance/commit/05ae32f11c8c2c9d4426d6c40e0f857bb6957ab7))
+* update README and internals docs to reflect plocate-required architecture ([#21](https://github.com/Limozacloud/glance/issues/21)) ([334e62b](https://github.com/Limozacloud/glance/commit/334e62bcfec1baf6d74e9b1b97ff42c00e8dad7d))
+
 ## [0.4.0](https://github.com/Limozacloud/glance/compare/glance-v0.3.0...glance-v0.4.0) (2026-06-30)
 
 
