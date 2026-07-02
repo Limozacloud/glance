@@ -5,10 +5,11 @@ glance accepts a YAML or JSON config file (`--config FILE`) or `Config` object i
 ## Full reference
 
 ```yaml
-# Paths to scan — the binary cataloger walks these for ELF/PE files;
-# ecosystem catalogers search here for manifests and install stores.
+# Paths to scan — ecosystem catalogers search here for manifests and install
+# stores. On Linux the binary cataloger uses plocate (not these paths directly);
+# on Windows it enumerates the MFT of all fixed drives.
 # Default (Linux): ["/"]
-# Default (Windows): all mounted drive letters, e.g. ["C:\\", "D:\\", "E:\\"]
+# Default (Windows): all fixed drive letters, e.g. ["C:\\", "D:\\"]
 include_paths:
   - /opt
   - /usr/lib64
@@ -29,28 +30,35 @@ exclude_fs_types:
   - sysfs
   - proc
 
-# Always walked directly, even if the locate DB prunes them.
-# These are cheap (small) and must never be missed.
-mandatory_paths:
-  - /usr/lib
-  - /usr/lib64
-  - /usr/local/lib
-  - /opt
-
 # Glob gate: which filenames are interesting at all.
 # null = derive automatically from classifier definitions (recommended).
 file_globs: null
 
-# Discovery engine for binary scanning (Linux).
-# auto: try plocate → mlocate → walk
-# plocate / mlocate / walk: force a specific engine
-engine: auto
+# ---------------------------------------------------------------------------
+# Discovery engine (Linux: plocate required)
+# ---------------------------------------------------------------------------
 
-# If the locate DB is older than this, treat it as unusable (cascade to next engine).
-max_db_age_hours: 24
+# Path to the plocate binary.
+# null = search $PATH. A RuntimeError is raised if no binary is found.
+# Set this when the agent ships a static plocate binary at a fixed path.
+plocate_binary: /opt/limoza/bin/plocate
 
-# What to do when the DB is stale: fallback (cascade) or warn (use anyway).
-on_stale_db: fallback
+# Path to the plocate database.
+# null = /var/lib/plocate/plocate.db. A RuntimeError is raised if missing.
+locate_db_path: /var/lib/limoza/plocate.db
+
+# Path to the updatedb binary.
+# Glance does not call updatedb — the agent uses this to rebuild the DB.
+updatedb_binary: /opt/limoza/bin/updatedb
+
+# Path to an updatedb.conf for the agent's DB build.
+# null = updatedb uses /etc/updatedb.conf, which may prune important paths.
+# Point to the shipped glance/default_updatedb.conf for deterministic coverage.
+updatedb_config: /opt/limoza/etc/updatedb.conf
+
+# ---------------------------------------------------------------------------
+# Catalogers
+# ---------------------------------------------------------------------------
 
 # Which catalogers to run. null = all applicable.
 # Accepts individual names or group aliases (software, binary, ecosystem,
@@ -77,11 +85,22 @@ classifier_files: []
 # Prefer classifier_files with cataloger: windows_registry / windows_binary instead.
 extension_file: null
 
-# Follow symlinks during filesystem walk. Default: false.
-follow_symlinks: false
+# ---------------------------------------------------------------------------
+# Windows-specific
+# ---------------------------------------------------------------------------
 
-# Use a specific locate DB instead of probing standard paths. null = probe.
-locate_db_path: null
+# PE file extensions scanned by win_binary.
+win_pe_extensions:
+  - .dll
+  - .exe
+  - .sys
+
+# Discovery engine for Windows binary scanning: auto | mft | walk
+win_binary_engine: auto
+
+# ---------------------------------------------------------------------------
+# Content scan
+# ---------------------------------------------------------------------------
 
 # Skip content scan for files larger than this (bytes). Default: 200 MB.
 max_file_size: 209715200
@@ -95,26 +114,13 @@ compute_sha256: false
 
 # Logging level: DEBUG, INFO, WARNING, ERROR
 log_level: INFO
-
-# ---------------------------------------------------------------------------
-# Windows-specific
-# ---------------------------------------------------------------------------
-
-# PE file extensions scanned by win_binary.
-win_pe_extensions:
-  - .dll
-  - .exe
-  - .sys
-
-# Discovery engine for Windows binary scanning: auto | mft | walk
-win_binary_engine: auto
 ```
 
 ## Minimal example
 
 ```yaml
-include_paths:
-  - /opt/apps
+plocate_binary: /opt/limoza/bin/plocate
+locate_db_path: /var/lib/limoza/plocate.db
 catalogers:
   - ecosystem
   - binary
@@ -127,15 +133,16 @@ glance --config my-scan.yaml --output sbom.json
 ## Config in code
 
 ```python
-from glance import Config, Engine
+from glance import Config, scan
 
 config = Config(
-    include_paths=["/opt/apps"],
+    plocate_binary="/opt/limoza/bin/plocate",
+    locate_db_path="/var/lib/limoza/plocate.db",
     catalogers=["ecosystem", "binary"],
-    ecosystem_mode="installed",   # "project" for repo scans
-    engine=Engine.WALK,
-    max_db_age_hours=48,
+    ecosystem_mode="installed",
 )
+
+result = scan(config)
 ```
 
 `Config` is a Python dataclass — every YAML key maps directly to a field.

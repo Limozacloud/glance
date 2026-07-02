@@ -11,7 +11,6 @@ glance [OPTIONS]
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--config FILE` | — | YAML or JSON config file |
-| `--engine ENGINE` | `auto` | Discovery engine: `auto` / `plocate` / `mlocate` / `walk` |
 | `--include PATH` | from config | Root path to scan. Repeatable. Overrides config `include_paths`. |
 | `--catalogers LIST` | all applicable | Comma-separated catalogers or group names (see below) |
 | `--format FORMAT` | `cyclonedx` | Output format: `cyclonedx` / `native` / `minimal` |
@@ -47,8 +46,8 @@ glance --catalogers software --format minimal --output win_software.json
 # Windows: full scan including bundled DLLs
 glance --catalogers software,binary --output sbom.json
 
-# Linux: narrow scope to /opt, force filesystem walk
-glance --engine walk --include /opt --output sbom.json
+# Linux: narrow scope to /opt (plocate drives discovery)
+glance --catalogers binary --include /opt --output sbom.json
 
 # Scan a deployed application — installed packages (default ecosystem mode)
 glance --catalogers ecosystem --include /opt/myapp --output app_sbom.json
@@ -77,10 +76,10 @@ glance --catalogers software --format minimal | jq '.[] | "\(.name) \(.version)"
 After every scan, glance prints a one-line summary to **stderr**:
 
 ```
-glance: 134 components (engine=walk, considered=84312, read=49, skipped=3, 12.4s)
+glance: 134 components (engine=plocate, considered=84312, read=49, skipped=3, 12.4s)
 ```
 
-- `engine` — which discovery engine ran (Linux binary scan)
+- `engine` — which discovery engine ran (`plocate` on Linux, `mft` on Windows)
 - `considered` — files that passed the glob gate
 - `read` — files whose content was actually read
 - `skipped` — paths/filesystems not scanned (see `--report` for details)
