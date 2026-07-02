@@ -18,7 +18,7 @@ import os
 import zipfile
 
 from ...models import Source
-from .base import _SKIP_DIRS, EcosystemCataloger
+from .base import EcosystemCataloger
 
 
 class JarCataloger(EcosystemCataloger):
@@ -41,18 +41,6 @@ class JarCataloger(EcosystemCataloger):
                 continue
             seen.add(path)
             found.append(path)
-        return found
-
-    def _walk_candidates(self) -> list[str]:
-        found: list[str] = []
-        for root in self.paths:
-            if not os.path.isdir(root):
-                continue
-            for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
-                dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS]
-                for fname in filenames:
-                    if fname.endswith(".jar"):
-                        found.append(os.path.join(dirpath, fname))
         return found
 
     def _purl(self, name: str, version: str | None) -> str:

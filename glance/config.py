@@ -44,9 +44,6 @@ class Config:
     # --- Windows PE binary scan ------------------------------------------------
     #: File extensions considered for Windows PE binary scanning.
     win_pe_extensions: list[str] = field(default_factory=lambda: [".dll", ".exe", ".sys"])
-    #: Windows binary discovery engine: "auto" tries Everything (es.exe) then
-    #: falls back to os.walk; "everything" forces es.exe; "walk" forces os.walk.
-    win_binary_engine: str = "auto"
 
     # --- content scan ----------------------------------------------------------
     #: Skip content scan of files larger than this (bytes). Checked lazily.

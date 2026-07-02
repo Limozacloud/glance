@@ -46,7 +46,6 @@ class SkipReason(str, Enum):
 
     PERMISSION_DENIED = "permission_denied"
     NOT_FOUND = "not_found"
-    CATALOGER_UNAVAILABLE = "cataloger_unavailable"
     MAX_FILE_SIZE = "max_file_size"
     NOT_ELF = "not_elf"
     READ_ERROR = "read_error"

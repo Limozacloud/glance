@@ -158,6 +158,9 @@ def _make_fake_tree(tmp_path: Path, files: dict[str, dict]) -> str:
 
 def _catalog(tmp_path: Path, tree: dict[str, dict | None], index=None) -> tuple[list, ScanReport]:
     root = _make_fake_tree(tmp_path, tree)
+    all_files = [
+        os.path.join(dirpath, f) for dirpath, _, filenames in os.walk(root) for f in filenames
+    ]
 
     def fake_versioninfo(path: str) -> dict:
         rel = os.path.relpath(path, root).replace("\\", "/")
@@ -169,6 +172,7 @@ def _catalog(tmp_path: Path, tree: dict[str, dict | None], index=None) -> tuple[
         patch("glance.catalogers.win_binary.read_versioninfo", side_effect=fake_versioninfo),
         patch("glance.catalogers.win_binary._binary_index", return_value=index or SMALL_INDEX),
         patch.object(cat, "available", return_value=True),
+        patch.object(cat, "_discover", return_value=all_files),
     ):
         comps = cat.catalog(report)
     return comps, report

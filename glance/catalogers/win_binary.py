@@ -4,10 +4,7 @@ Unlike the Linux binary cataloger (byte-regex on ELF), Windows PE binaries carry
 structured VERSIONINFO resources with ProductName, ProductVersion, and CompanyName.
 This gives reliable, unambiguous product identity without pattern guessing.
 
-Discovery engine cascade:
-  1. MFT (NTFS Master File Table) — fast, requires admin
-  2. os.walk — full filesystem walk, always available as fallback
-
+Discovery: MFT (NTFS Master File Table) via FSCTL_ENUM_USN_DATA — fast, requires admin.
 Gate: file extension (configurable, default .dll/.exe/.sys) + MZ magic (2-byte read).
 Match: ProductName + CompanyName against ``glance/classifiers/win_binary_index.yaml``.
 """
@@ -161,43 +158,23 @@ class WinBinaryCataloger:
         self,
         paths: list[str] | None = None,
         extensions: list[str] | None = None,
-        engine: str = "auto",
         extra_entries: list[dict] | None = None,
     ) -> None:
         self.paths = paths or DEFAULT_WIN_PATHS
         self.extensions = frozenset(e.lower() for e in (extensions or DEFAULT_PE_EXTENSIONS))
-        self.engine = engine  # "auto" | "mft" | "walk"
         self._extra_entries: list[dict] = list(extra_entries or [])
 
     def available(self) -> bool:
         return sys.platform == "win32"
 
-    def _discover(self, report: ScanReport) -> tuple[list[str], str]:
-        """Return (candidate_paths, engine_used)."""
-        if self.engine in ("auto", "mft"):
-            from ..discovery import mft as _mft
+    def _discover(self) -> list[str]:
+        from ..discovery import mft as _mft
 
-            if _mft.available():
-                drives = _mft.local_drives()
-                candidates = _mft.query(
-                    drives,
-                    extensions=list(self.extensions),
-                    scope_paths=self.paths,
-                )
-                return candidates, "mft"
-            if self.engine == "mft":
-                log.warning("win_binary: MFT not available (no admin?), falling back to walk")
-
-        # walk fallback
-        walk_candidates: list[str] = []
-        for root_path in self.paths:
-            if not os.path.isdir(root_path):
-                continue
-            for dirpath, _dirs, filenames in os.walk(root_path):
-                for fname in filenames:
-                    if os.path.splitext(fname)[1].lower() in self.extensions:
-                        walk_candidates.append(os.path.join(dirpath, fname))
-        return walk_candidates, "walk"
+        if not _mft.available():
+            log.warning("win_binary: MFT not available — requires admin privileges")
+            return []
+        drives = _mft.local_drives()
+        return _mft.query(drives, extensions=list(self.extensions), scope_paths=self.paths)
 
     def catalog(self, report: ScanReport) -> list[Component]:
         if not self.available():
@@ -216,13 +193,15 @@ class WinBinaryCataloger:
             )
             return []
 
-        candidates, engine_used = self._discover(report)
-        log.debug("win_binary: %d candidates via %s", len(candidates), engine_used)
+        candidates = self._discover()
+        log.debug("win_binary: %d candidates via mft", len(candidates))
 
         components: list[Component] = []
         seen: set[tuple[str, str]] = set()
 
         for fpath in candidates:
+            if os.path.splitext(fpath)[1].lower() not in self.extensions:
+                continue
             if not _is_pe(fpath):
                 continue
             info = read_versioninfo(fpath)
@@ -254,7 +233,7 @@ class WinBinaryCataloger:
                         cpes=[cpe],
                         bom_ref=purl,
                         managed=False,
-                        occurrences=[Occurrence(path=fpath, found_by=f"win_binary/{engine_used}")],
+                        occurrences=[Occurrence(path=fpath, found_by="win_binary/mft")],
                         metadata={
                             "product_name": product_name,
                             "company": company,
@@ -265,7 +244,7 @@ class WinBinaryCataloger:
                 break
 
         report.catalogers.append(
-            CatalogerStatus(self.name, True, len(components), detail=f"engine={engine_used}")
+            CatalogerStatus(self.name, True, len(components), detail="engine=mft")
         )
         return components
 

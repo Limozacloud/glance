@@ -69,7 +69,6 @@ glance/
 
   data/
     default_config.yaml
-    default_updatedb.conf  Shipped updatedb.conf for deterministic DB coverage
     win_cpe_index.yaml     Registry cataloger CPE lookup table
     win_binary_index.yaml  Win binary cataloger product-name lookup table
 ```

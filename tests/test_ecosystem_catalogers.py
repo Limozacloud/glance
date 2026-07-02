@@ -24,13 +24,17 @@ from glance.models import ScanReport, Source
 
 
 def _catalog(cataloger_cls, tmp_path: Path, files: dict[str, str]) -> list:
+    from glance.discovery.index import FileIndex
+
     for rel, content in files.items():
         p = tmp_path / rel
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(content, encoding="utf-8")
-    cat = cataloger_cls(paths=[str(tmp_path)])
+    all_paths = {str(f) for f in tmp_path.rglob("*") if f.is_file()}
+    idx = FileIndex(all_paths)
+    cat = cataloger_cls()
     report = ScanReport()
-    return cat.catalog(report)
+    return cat.catalog(report, index=idx)
 
 
 # ── PipCataloger ──────────────────────────────────────────────────────────────
@@ -396,11 +400,14 @@ def _make_jar(path: Path, pom_props: str) -> None:
 
 
 def test_jar_reads_pom_properties(tmp_path):
+    from glance.discovery.index import FileIndex
+
     props = "groupId=org.springframework\nartifactId=spring-core\nversion=5.3.20\n"
     _make_jar(tmp_path / "lib/spring-core-5.3.20.jar", props)
-    cat = JarCataloger(paths=[str(tmp_path)])
+    idx = FileIndex({str(f) for f in tmp_path.rglob("*") if f.is_file()})
+    cat = JarCataloger()
     report = ScanReport()
-    comps = cat.catalog(report)
+    comps = cat.catalog(report, index=idx)
     assert len(comps) == 1
     assert comps[0].name == "org.springframework/spring-core"
     assert comps[0].version == "5.3.20"
@@ -409,10 +416,13 @@ def test_jar_reads_pom_properties(tmp_path):
 
 
 def test_jar_skips_bad_zip(tmp_path):
+    from glance.discovery.index import FileIndex
+
     bad = tmp_path / "bad.jar"
     bad.write_bytes(b"not a zip file")
-    cat = JarCataloger(paths=[str(tmp_path)])
-    comps = cat.catalog(ScanReport())
+    idx = FileIndex({str(bad)})
+    cat = JarCataloger()
+    comps = cat.catalog(ScanReport(), index=idx)
     assert comps == []
 
 

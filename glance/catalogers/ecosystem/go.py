@@ -14,6 +14,9 @@ class GoCataloger(EcosystemCataloger):
     name = "go"
     source = Source.GO
 
+    def manifest_filenames(self) -> list[str]:
+        return ["go.sum"]
+
     def _is_manifest(self, filename: str) -> bool:
         return filename == "go.sum"
 

@@ -15,7 +15,7 @@ import os
 import re
 
 from ...models import Source
-from .base import _SKIP_DIRS, EcosystemCataloger
+from .base import EcosystemCataloger
 
 # <gem-name>-<version>.gemspec  — version always starts with a digit.
 # Greedy (.+) takes the longest possible name before the last -<digit> sequence.
@@ -48,20 +48,6 @@ class GemInstalledCataloger(EcosystemCataloger):
                 continue
             seen.add(path)
             found.append(path)
-        return found
-
-    def _walk_candidates(self) -> list[str]:
-        found: list[str] = []
-        for root in self.paths:
-            if not os.path.isdir(root):
-                continue
-            for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
-                dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS]
-                if os.path.basename(dirpath) != "specifications":
-                    continue
-                for fname in filenames:
-                    if self._is_manifest(fname):
-                        found.append(os.path.join(dirpath, fname))
         return found
 
     def _purl(self, name: str, version: str | None) -> str:

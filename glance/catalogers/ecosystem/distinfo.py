@@ -17,20 +17,6 @@ import os
 from ...models import Source
 from .base import EcosystemCataloger
 
-# Directories to skip during walk — notably venv dirs are NOT here because
-# we specifically want to find installed packages inside venvs.
-_SKIP = frozenset(
-    {
-        ".git",
-        ".hg",
-        ".svn",
-        "__pycache__",
-        "node_modules",
-        ".tox",
-        ".nox",
-    }
-)
-
 
 class DistInfoCataloger(EcosystemCataloger):
     """Cataloger for Python packages installed via pip / uv / poetry."""
@@ -61,17 +47,6 @@ class DistInfoCataloger(EcosystemCataloger):
             # intentionally NOT calling _in_skip_dir — we want venvs
             seen.add(path)
             found.append(path)
-        return found
-
-    def _walk_candidates(self) -> list[str]:
-        found: list[str] = []
-        for root in self.paths:
-            if not os.path.isdir(root):
-                continue
-            for dirpath, dirnames, filenames in os.walk(root):
-                dirnames[:] = [d for d in dirnames if d not in _SKIP]
-                if "METADATA" in filenames and dirpath.endswith(".dist-info"):
-                    found.append(os.path.join(dirpath, "METADATA"))
         return found
 
     # ── Parsing ───────────────────────────────────────────────────────────────

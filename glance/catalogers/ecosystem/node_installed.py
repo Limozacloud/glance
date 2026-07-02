@@ -8,13 +8,9 @@ directly under its node_modules sub-directory with exact resolved versions.
 from __future__ import annotations
 
 import json
-import os
 
 from ...models import Source
-from .base import _SKIP_DIRS, EcosystemCataloger
-
-# Walk into node_modules — exclude everything else from _SKIP_DIRS.
-_WALK_SKIP = _SKIP_DIRS - {"node_modules"}
+from .base import EcosystemCataloger
 
 
 def _is_installed(path: str) -> bool:
@@ -49,19 +45,6 @@ class NodeInstalledCataloger(EcosystemCataloger):
                 continue
             seen.add(path)
             found.append(path)
-        return found
-
-    def _walk_candidates(self) -> list[str]:
-        found: list[str] = []
-        for root in self.paths:
-            if not os.path.isdir(root):
-                continue
-            for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
-                dirnames[:] = [d for d in dirnames if d not in _WALK_SKIP]
-                if "package.json" in filenames:
-                    path = os.path.join(dirpath, "package.json")
-                    if _is_installed(path):
-                        found.append(path)
         return found
 
     def _purl(self, name: str, version: str | None) -> str:

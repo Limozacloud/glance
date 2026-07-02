@@ -57,9 +57,6 @@ win_pe_extensions:
   - .exe
   - .sys
 
-# Discovery engine for Windows binary scanning: auto | mft | walk
-win_binary_engine: auto
-
 # ---------------------------------------------------------------------------
 # Content scan
 # ---------------------------------------------------------------------------

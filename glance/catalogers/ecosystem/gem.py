@@ -14,6 +14,9 @@ class GemCataloger(EcosystemCataloger):
     name = "gem"
     source = Source.GEM
 
+    def manifest_filenames(self) -> list[str]:
+        return ["Gemfile.lock"]
+
     def _is_manifest(self, filename: str) -> bool:
         return filename == "Gemfile.lock"
 

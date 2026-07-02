@@ -33,8 +33,7 @@ class EcosystemCataloger:
     name: str
     source: Source
 
-    def __init__(self, paths: list[str] | None = None, config=None) -> None:
-        self.paths = paths or []
+    def __init__(self, config=None) -> None:
         self.config = config
 
     def available(self) -> bool:
@@ -94,33 +93,12 @@ class EcosystemCataloger:
                 found.append(path)
         return found
 
-    def _walk_candidates(self) -> list[str]:
-        found: list[str] = []
-        for root in self.paths:
-            if not os.path.isdir(root):
-                continue
-            for dirpath, dirnames, filenames in os.walk(root):
-                dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS]
-                for filename in filenames:
-                    if self._is_manifest(filename):
-                        found.append(os.path.join(dirpath, filename))
-        return found
-
     # ── Catalog ───────────────────────────────────────────────────────────────
 
     def catalog(self, report: ScanReport, index=None) -> list[Component]:
-        """Catalog components.
-
-        When *index* is provided (a FileIndex from discover_all), queries it
-        directly. Otherwise walks the configured paths.
-        """
-        candidates: list[str]
-        if index is not None:
-            candidates = self._index_candidates(index)
-            engine_used = "index"
-        else:
-            candidates = self._walk_candidates()
-            engine_used = "walk"
+        """Catalog components from the FileIndex built by discover_all()."""
+        candidates = self._index_candidates(index) if index is not None else []
+        engine_used = "index"
 
         components: list[Component] = []
         seen: set[tuple[str, str]] = set()

@@ -207,7 +207,6 @@ def query(
     names: list[str] | None = None,
     extensions: list[str] | None = None,
     scope_paths: list[str] | None = None,
-    skip_dirs: frozenset[str] | None = None,
 ) -> list[str]:
     """
     Enumerate files across *drives* matching *names* (exact) or *extensions*.
@@ -217,7 +216,6 @@ def query(
         names:       Exact filenames, e.g. ``["requirements.txt", "go.sum"]``.
         extensions:  File extensions with leading dot, e.g. ``[".dll", ".exe"]``.
         scope_paths: If set, only return paths under these roots.
-        skip_dirs:   Directory basenames to prune, e.g. ``{"node_modules"}``.
 
     Returns:
         Flat list of full absolute paths.
@@ -241,29 +239,9 @@ def query(
             parent = _resolve_path(dir_map, pref, drive)
             full = parent + "\\" + fname
 
-            if skip_dirs:
-                parts = full.replace("\\", "/").split("/")
-                if any(p in skip_dirs for p in parts):
-                    continue
-
             if scope_paths and not any(full.startswith(sp) for sp in scope_paths):
                 continue
 
             results.append(full)
 
     return results
-
-
-def drives_for_paths(paths: list[str]) -> list[str]:
-    """Extract unique drive letters from a list of paths, or all local drives."""
-    if not paths:
-        return local_drives()
-    seen: set[str] = set()
-    drives: list[str] = []
-    for p in paths:
-        if len(p) >= 2 and p[1] == ":":
-            letter = p[0].upper()
-            if letter not in seen:
-                seen.add(letter)
-                drives.append(letter)
-    return drives if drives else local_drives()

@@ -97,7 +97,6 @@ def scan(config: Config | None = None) -> ScanResult:
         if cataloger_cls is _WinBin:
             cataloger = cataloger_cls(  # type: ignore[assignment]
                 extensions=config.win_pe_extensions,
-                engine=config.win_binary_engine,
                 extra_entries=win_binary_extra or None,
             )
         elif cataloger_cls is _Reg:
@@ -133,10 +132,10 @@ def scan(config: Config | None = None) -> ScanResult:
             if config.ecosystem_mode == "installed"
             else ECOSYSTEM_PROJECT_CATALOGERS
         )
-        eco_catalogers = {name: cls(paths=[], config=config) for name, cls in _active_eco.items()}
+        eco_catalogers = {name: cls(config=config) for name, cls in _active_eco.items()}
     else:
         eco_catalogers = {
-            name: cls(paths=[], config=config) for name, cls in _all_eco.items() if name in enabled
+            name: cls(config=config) for name, cls in _all_eco.items() if name in enabled
         }
 
     extra_names: list[str] = [
