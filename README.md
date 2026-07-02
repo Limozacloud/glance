@@ -10,9 +10,9 @@ A **mini-SBOM scanner** for servers and containers. It produces a compact
    package with its full version and a proper `pkg:rpm`/`pkg:deb`/`pkg:apk` PURL.
 2. **Ecosystem catalogers** read actual install stores (`dist-info`, `node_modules`,
    JARs, gemspecs) or project lock files — switchable via `ecosystem_mode`.
-3. **The binary cataloger** finds files via cheap *locate gates*, reads the
-   version straight out of the bytes, and attributes the file to an upstream
-   identity — e.g. a bundled `libcrypto.so.1.1` becomes `openssl 1.1.1w` with a
+3. **The binary cataloger** finds files via a plocate index, reads the version
+   straight out of the bytes, and attributes the file to an upstream identity —
+   e.g. a bundled `libcrypto.so.1.1` becomes `openssl 1.1.1w` with a
    `pkg:generic/openssl@1.1.1w` PURL **and** a versioned CPE.
 
 ## Install
@@ -24,6 +24,34 @@ pip install glance        # ships PyYAML; pure-stdlib core otherwise
 Requires Python 3.10+. The scan logic uses only the standard library; PyYAML is
 used only to read a YAML config file.
 
+## Prerequisites
+
+### Linux
+
+glance requires **plocate** with a pre-built database. The agent is responsible
+for deploying the binary and running `updatedb` before glance is called. If
+plocate is not found, glance raises a `RuntimeError`.
+
+```bash
+# build the database (once, or on a schedule)
+/opt/limoza/bin/updatedb \
+  --output /var/lib/limoza/plocate.db \
+  --config-file /opt/limoza/etc/updatedb.conf \
+  -l 0   # no group requirement
+
+# run glance — it queries the pre-built DB
+glance --config /opt/limoza/etc/glance.yaml --output sbom.json
+```
+
+By default glance looks for `plocate` in `$PATH` and the DB at
+`/var/lib/plocate/plocate.db`. Use `plocate_binary` and `locate_db_path` in the
+config to point at custom paths (e.g. a statically compiled binary shipped with
+the agent).
+
+### Windows
+
+No prerequisites. glance enumerates the NTFS MFT directly (no index needed).
+
 ## Usage
 
 ### CLI
@@ -32,8 +60,8 @@ used only to read a YAML config file.
 # scan the whole system, write a CycloneDX SBOM
 glance --output sbom.json --report report.json
 
-# only the binary cataloger, forced filesystem walk, narrow scope
-glance --catalogers binary --engine walk --include /opt --include /usr/lib64
+# only the binary cataloger, narrow to a specific path
+glance --catalogers binary --include /opt --include /usr/lib64 --output sbom.json
 
 # feed straight into a vulnerability scanner
 glance -o sbom.json && grype sbom:sbom.json
@@ -41,7 +69,6 @@ glance -o sbom.json && grype sbom:sbom.json
 
 ```
 --config FILE        YAML or JSON config file
---engine ENGINE      auto | plocate | mlocate | walk   (default: auto)
 --include PATH       root path to scan (repeatable)
 --catalogers LIST    groups: software, binary, ecosystem, ecosystem-installed,
                      ecosystem-project, all
@@ -58,7 +85,10 @@ glance -o sbom.json && grype sbom:sbom.json
 ```python
 from glance import scan, Config
 
-result = scan(Config(include_paths=["/opt", "/usr/lib64"]))
+result = scan(Config(
+    plocate_binary="/opt/limoza/bin/plocate",
+    locate_db_path="/var/lib/limoza/plocate.db",
+))
 
 for c in result.components:
     print(c.name, c.version, c.purl, "managed" if c.managed else "UNMANAGED")
@@ -73,49 +103,58 @@ larger agent.
 ## How it works
 
 ```
-config -> discovery -> scanner (binary) ┐
-                                         ├─> correlate -> models -> CycloneDX + report
-          package catalogers (rpm/...)  ┘
+config → discovery (plocate / MFT) → FileIndex
+                                          ↓
+                               binary cataloger (byte-regex)
+                                          ↓
+         package catalogers (rpm/dpkg/…) → correlate → ScanResult + report
+         ecosystem catalogers (pip/go/…) ↗
 ```
 
-1. **Glob gate first.** A path/filename glob (the union of all classifier gates,
-   e.g. `**/libcrypto.so*`, `**/openssl`, `**/python*`) decides which files are
-   interesting *before* any content is read.
-2. **Discovery engine cascade.** `plocate` -> `mlocate` -> filesystem walk.
-   locate is used only as a fast index returning a *superset*; the gate is the
-   sole authority on what matches, so the engine choice only affects speed,
-   never results. A staleness check (`max_db_age_hours`) drops a too-old DB out
-   of the cascade. `mandatory_paths` (e.g. `/usr/lib64`, `/opt`) are **always**
-   walked directly, regardless of engine, DB freshness or any customer
-   `updatedb.conf` pruning.
-3. **Content scan.** Only gated candidates are read, via `mmap` (no whole-file
-   copies), and matched with pre-compiled **byte** regexes (version strings live
-   between `\x00` separators).
-4. **Correlation.** For each binary find, glance asks the package DBs *who owns
-   this exact path?* Owned -> *managed*, suppressed in favour of the package
-   component (recorded in the report). Unowned -> *unmanaged*, emitted as a
-   `pkg:generic` component attributed to its install-path application.
-5. **Audit report.** Every skipped path/filesystem/cataloger is recorded with a
-   reason. A "green" scan can never silently mean "green, except the 2 TB nobody
+### Linux
+
+1. **plocate query.** `get_plocate(config)` locates the binary (`plocate_binary`
+   or `$PATH`) and the DB (`locate_db_path` or `/var/lib/plocate/plocate.db`).
+   If either is missing a `RuntimeError` is raised — there is no walk fallback.
+2. **Substring anchors.** Each classifier's glob (e.g. `**/libcrypto.so*`) is
+   reduced to its longest literal fragment (`libcrypto.so`) and passed as a
+   plocate OR query. One subprocess call returns a superset.
+3. **Gate + scope filter.** Every path from plocate is checked against the glob
+   gate, `exclude_paths`, and `exclude_fs_types`. Only matching paths enter the
+   FileIndex.
+4. **Content scan.** Only gated candidates are read, via `mmap`, and matched with
+   pre-compiled **byte** regexes.
+5. **Correlation.** For each binary find, glance asks the package DBs *who owns
+   this exact path?* Owned → *managed*, suppressed in favour of the package
+   component. Unowned → *unmanaged*, emitted as a `pkg:generic` component
+   attributed to its install-path application.
+6. **Audit report.** Every skipped path/filesystem/cataloger is recorded with a
+   reason. A "green" scan never silently means "green, except the 2 TB nobody
    looked at."
+
+### Windows
+
+1. **MFT enumeration.** `mft.query()` enumerates NTFS master file table records
+   directly (`FSCTL_ENUM_USN_DATA`) — no index needed. All fixed local drives are
+   covered.
+2. The rest (gate, content scan, correlation) is identical to Linux.
 
 ## Configuration
 
-A full, commented reference ships at
-[`glance/default_config.yaml`](glance/default_config.yaml). All keys
-are optional; the same defaults live in code. Present keys override the default,
-absent keys keep it, and an unknown key is a hard error.
+A full reference ships at
+[`glance/default_config.yaml`](glance/default_config.yaml). All keys are
+optional; defaults live in code. Present keys override the default, absent keys
+keep it, and an unknown key is a hard error.
 
 | key | default | meaning |
 |-----|---------|---------|
-| `include_paths` | `["/"]` | roots to scan (walk fallback / result bound) |
-| `exclude_paths` | `[]` | extra path prefixes to skip |
+| `plocate_binary` | `null` | path to plocate; `null` searches `$PATH` |
+| `locate_db_path` | `null` | path to plocate DB; `null` uses `/var/lib/plocate/plocate.db` |
+| `updatedb_binary` | `null` | path to updatedb — used by the agent to build the DB, not by glance |
+| `updatedb_config` | `null` | path to updatedb.conf for the agent's DB build |
+| `exclude_paths` | `[]` | path prefixes never scanned |
 | `exclude_fs_types` | nfs, cifs, tmpfs, overlay, … | filesystem types never scanned |
-| `mandatory_paths` | `/usr/lib`, `/usr/lib64`, `/opt`, … | always walked, never prunable |
 | `file_globs` | `null` (derive from classifiers) | the glob gate |
-| `engine` | `auto` | `auto`/`plocate`/`mlocate`/`walk` |
-| `max_db_age_hours` | `24` | a locate DB older than this is unusable |
-| `on_stale_db` | `fallback` | `fallback` (cascade) or `warn` (use anyway) |
 | `catalogers` | `null` (all applicable) | group or individual cataloger names |
 | `ecosystem_mode` | `installed` | `installed` (dist-info/node_modules/JARs/gemspecs) or `project` (lock files) |
 | `correlate_ownership` | `true` | managed/unmanaged correlation |
@@ -135,7 +174,6 @@ from .matchers import Classifier, contents
 Classifier(
     cls="nginx-binary",
     file_globs=["**/nginx"],
-    # version strings sit between NULs in the binary
     matcher=contents(rb"(?m)nginx version: [^/]+/(?P<version>[0-9]+\.[0-9]+\.[0-9]+)"),
     package="nginx",
     purl_template="pkg:generic/nginx@{version}",
@@ -159,7 +197,7 @@ at it — they are loaded in addition to the built-ins:
 classifiers:
   - class: nginx-library
     file_globs: ["**/libnginx.so*"]
-    version_patterns:          # OR — byte regexes; \x00 etc. are honoured
+    version_patterns:
       - 'nginx version: [^/]+/(?P<version>[0-9]+\.[0-9]+\.[0-9]+)'
     package: nginx
     purl: "pkg:generic/nginx@{version}"

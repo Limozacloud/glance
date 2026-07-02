@@ -7,8 +7,9 @@ flowchart TD
     Config --> scan["scan()"]
     scan --> PKG["Package catalogers\ndpkg / rpm / apk / registry / win_binary"]
     scan --> ECO["Ecosystem catalogers\npip / go / npm / nuget / maven / gem"]
-    scan --> DISC["Discovery engine\nplocate → mlocate → walk"]
-    DISC --> BIN["Binary cataloger\nbyte-regex classifiers"]
+    scan --> DISC["Discovery\nLinux: plocate\nWindows: MFT"]
+    DISC --> IDX["FileIndex\n(candidate paths)"]
+    IDX --> BIN["Binary cataloger\nbyte-regex classifiers"]
     PKG --> FILE_IDX["file_index()\npath → package PURL"]
     FILE_IDX --> CORR["Ownership correlation"]
     BIN --> CORR
@@ -25,7 +26,7 @@ glance/
   config.py            Config dataclass + YAML/JSON loader
   models.py            Component, ScanReport, ScanResult, Source, …
   cli.py               argparse CLI entry point
-  
+
   catalogers/
     __init__.py        PACKAGE_CATALOGERS, ECOSYSTEM_CATALOGERS,
                        CATALOGER_GROUPS, expand_catalogers()
@@ -50,10 +51,12 @@ glance/
       gem.py           Gemfile.lock
 
   discovery/
-    __init__.py        discover() — engine cascade → candidate list
-    engines.py         plocate / mlocate / walk engine implementations
+    __init__.py        discover_all() — Linux plocate / Windows MFT
+    engines.py         get_plocate(), query(), anchors_for(), literal_anchor()
     gate.py            Gate (glob matching) + derive_globs()
-    db_check.py        locate DB freshness check
+    index.py           FileIndex — immutable candidate path set
+    walk.py            read_mounts(), excluded_mount_prefixes() (FS-type filter)
+    mft.py             Windows NTFS MFT enumeration
 
   correlate.py         OwnershipResolver + correlate() — managed/unmanaged tagging
 
@@ -66,33 +69,43 @@ glance/
 
   data/
     default_config.yaml
-    win_cpe_index.yaml    Registry cataloger CPE lookup table
-    win_binary_index.yaml Win binary cataloger product-name lookup table
+    default_updatedb.conf  Shipped updatedb.conf for deterministic DB coverage
+    win_cpe_index.yaml     Registry cataloger CPE lookup table
+    win_binary_index.yaml  Win binary cataloger product-name lookup table
 ```
 
 ## scan() step by step
 
 `scan()` in `glance/__init__.py` is the single public entry point:
 
-1. **Group expansion.** `expand_catalogers(config.catalogers)` turns group names (`software`, `ecosystem`) into individual cataloger names.
+1. **Group expansion.** `expand_catalogers(config.catalogers)` turns group names
+   (`software`, `ecosystem`) into individual cataloger names.
 
-2. **Package catalogers.** For each cataloger in `PACKAGE_CATALOGERS` (dpkg, rpm, apk, registry, win_binary):
+2. **Package catalogers.** For each cataloger in `PACKAGE_CATALOGERS` (dpkg,
+   rpm, apk, registry, win_binary):
    - Skip if not in the enabled set.
    - Call `available()` — skip if not applicable on this host.
    - Call `catalog(report)` — collect `Component` objects.
    - Call `file_index()` — collect `{path → purl}` for ownership correlation.
 
-3. **Binary cataloger (Linux ELF).** If `binary` is enabled:
-   - `discover(config, gate, report)` — returns a list of candidate paths via the engine cascade.
-   - `BinaryCataloger(classifiers).catalog(candidates, config, report)` — reads and byte-regex-matches candidates.
-   - `correlate()` — marks each binary find as managed (owned by a package) or unmanaged.
+3. **Discovery + binary cataloger.** If `binary` is enabled:
+   - `discover_all(config, gate, extra_names, report)` — on Linux calls
+     `get_plocate(config)` and queries the plocate DB; on Windows enumerates the
+     NTFS MFT. Returns a `FileIndex`.
+   - `BinaryCataloger(classifiers).catalog(index, config, report)` — reads and
+     byte-regex-matches candidates from the FileIndex.
+   - `correlate()` — marks each binary find as managed (owned by a package) or
+     unmanaged.
 
-4. **Ecosystem catalogers.** For each cataloger in `ECOSYSTEM_CATALOGERS` (pip, go, npm, nuget, maven, gem):
+4. **Ecosystem catalogers.** For each cataloger in `ECOSYSTEM_CATALOGERS` (pip,
+   go, npm, nuget, maven, gem, distinfo, node_installed, jar, gem_installed):
    - Skip if not in the enabled set.
    - Instantiate with `paths=config.include_paths`.
-   - Call `catalog(report)` — walks paths, finds manifests, parses them.
+   - Call `catalog(report, index=file_index)` — queries the FileIndex when
+     available, otherwise walks the configured paths directly.
 
-5. **Result assembly.** Components from all three stages are merged into `ScanResult(components, report)`.
+5. **Result assembly.** Components from all three stages are merged into
+   `ScanResult(components, report)`.
 
 ## Component deduplication
 
