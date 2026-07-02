@@ -41,33 +41,16 @@ _UNINSTALL_KEYS = [
 ]
 
 
-def _load_index(extension_file: str | None = None) -> list[dict]:
-    from ..classifiers.win_registry_data import WIN_REGISTRY_ENTRIES
-
-    entries = list(WIN_REGISTRY_ENTRIES)
-    if extension_file:
-        entries.extend(_load_extension(extension_file, "registry"))
-    return entries
+_INDEX_CACHE: list[dict] | None = None
 
 
-def _load_extension(path: str, section: str) -> list[dict]:
-    try:
-        import yaml
-    except ImportError as exc:
-        raise ImportError("extension_file requires PyYAML — pip install pyyaml") from exc
-    import pathlib
+def _index() -> list[dict]:
+    global _INDEX_CACHE
+    if _INDEX_CACHE is None:
+        from ..classifiers.win_registry_data import WIN_REGISTRY_ENTRIES
 
-    doc = yaml.safe_load(pathlib.Path(path).read_text(encoding="utf-8")) or {}
-    return doc.get(section, {}).get("entries", [])
-
-
-_INDEX_CACHE: dict[str | None, list[dict]] = {}
-
-
-def _index(extension_file: str | None = None) -> list[dict]:
-    if extension_file not in _INDEX_CACHE:
-        _INDEX_CACHE[extension_file] = _load_index(extension_file)
-    return _INDEX_CACHE[extension_file]
+        _INDEX_CACHE = list(WIN_REGISTRY_ENTRIES)
+    return _INDEX_CACHE
 
 
 def _match(display_name: str, publisher: str, entry: dict) -> bool:
@@ -96,10 +79,8 @@ class RegistryCataloger:
 
     def __init__(
         self,
-        extension_file: str | None = None,
         extra_entries: list[dict] | None = None,
     ) -> None:
-        self.extension_file = extension_file
         self._extra_entries: list[dict] = list(extra_entries or [])
 
     def available(self) -> bool:
@@ -121,7 +102,7 @@ class RegistryCataloger:
             return []
 
         try:
-            index = _index(self.extension_file)
+            index = _index()
             if self._extra_entries:
                 index = index + self._extra_entries
         except Exception as exc:

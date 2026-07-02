@@ -98,12 +98,10 @@ def scan(config: Config | None = None) -> ScanResult:
             cataloger = cataloger_cls(  # type: ignore[assignment]
                 extensions=config.win_pe_extensions,
                 engine=config.win_binary_engine,
-                extension_file=config.extension_file,
                 extra_entries=win_binary_extra or None,
             )
         elif cataloger_cls is _Reg:
             cataloger = cataloger_cls(  # type: ignore[assignment]
-                extension_file=config.extension_file,
                 extra_entries=registry_extra or None,
             )
         else:

@@ -71,10 +71,6 @@ class Config:
     plocate_binary: str | None = None
     #: Path to the plocate DB. ``None`` uses /var/lib/plocate/plocate.db.
     locate_db_path: str | None = None
-    #: Path to the updatedb binary — read by the agent, not called by glance.
-    updatedb_binary: str | None = None
-    #: Path to an updatedb.conf for the agent's updatedb call.
-    updatedb_config: str | None = None
 
     # --- catalogers ------------------------------------------------------------
     #: Which catalogers to run. ``None`` = all that are applicable on this host.
@@ -89,11 +85,6 @@ class Config:
     #: Extra binary-classifier definition files (YAML/JSON) loaded in addition to
     #: the built-ins — add classifiers without touching code.
     classifier_files: list[str] = field(default_factory=list)
-    #: Optional YAML extension file with registry/binary index entries.
-    #: Format: registry.entries / binary.entries  (list of index dicts).
-    #: PyYAML is only imported when this is set.
-    extension_file: str | None = None
-
     # --- Windows PE binary scan ------------------------------------------------
     #: File extensions considered for Windows PE binary scanning.
     win_pe_extensions: list[str] = field(default_factory=lambda: [".dll", ".exe", ".sys"])

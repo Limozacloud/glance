@@ -52,9 +52,9 @@ Note: the `+` characters in the CPE product field must be escaped as `\\+\\+` in
 ## Testing locally
 
 ```python
-from glance.catalogers.registry import _load_index, _match
+from glance.catalogers.registry import _index, _match
 
-index = _load_index()
+index = _index()
 entry = next(e for e in index if e["id"] == "your_unique_id")
 
 # Simulate what the registry would report
