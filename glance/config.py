@@ -16,8 +16,6 @@ from dataclasses import dataclass, field, fields
 from pathlib import Path
 from typing import Any
 
-
-
 #: Filesystem types excluded by default — network shares and virtual filesystems
 #: that should never be walked.
 DEFAULT_EXCLUDE_FS_TYPES = [

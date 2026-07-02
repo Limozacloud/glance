@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import os
-
-from glance.discovery.engines import EngineInfo, anchors_for, literal_anchor
+from glance.discovery.engines import anchors_for, literal_anchor
 
 
 def test_literal_anchor():
@@ -21,6 +19,7 @@ def test_anchors_for_splits_anchorable_and_not():
 
 def test_get_plocate_missing_binary(tmp_path, monkeypatch):
     import shutil
+
     from glance.config import Config
     from glance.discovery.engines import get_plocate
 
@@ -34,7 +33,6 @@ def test_get_plocate_missing_binary(tmp_path, monkeypatch):
 
 
 def test_get_plocate_missing_db(tmp_path, monkeypatch):
-    import shutil
     from glance.config import Config
     from glance.discovery.engines import get_plocate
 

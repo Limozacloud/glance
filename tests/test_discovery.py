@@ -6,11 +6,10 @@ import sys
 import pytest
 
 from glance.config import Config
-from glance.discovery import discover_all
-from glance.discovery import engines
+from glance.discovery import discover_all, engines
 from glance.discovery.engines import EngineInfo
 from glance.discovery.gate import Gate
-from glance.models import ScanReport, SkipReason
+from glance.models import ScanReport
 
 
 def _touch(path: str, data: bytes = b"x") -> str:
@@ -39,7 +38,9 @@ def test_discover_linux_gates_candidates(monkeypatch, tmp_path):
     engine = EngineInfo("plocate", str(fake_bin), str(fake_db))
     monkeypatch.setattr(engines, "get_plocate", lambda _cfg: engine)
     monkeypatch.setattr(
-        engines, "query", lambda _eng, _anchors: iter([target, str(tmp_path / "opt/agent/notes.txt")])
+        engines,
+        "query",
+        lambda _eng, _anchors: iter([target, str(tmp_path / "opt/agent/notes.txt")]),
     )
 
     gate = Gate(cfg.file_globs)
