@@ -27,11 +27,11 @@ glance --output sbom.json --report report.json
 # Only Windows installed software (fast, no filesystem walk)
 glance --catalogers software --format minimal
 
-# Scan a deployed application for installed language packages (default)
-glance --catalogers ecosystem --include /opt/myapp
+# Ecosystem packages only
+glance --catalogers ecosystem
 
 # Scan a repository for lock-file dependencies
-glance --catalogers ecosystem-project --include /src/myrepo
+glance --catalogers ecosystem-project
 
 # Feed directly into Grype
 glance -o sbom.json && grype sbom:sbom.json
@@ -40,7 +40,7 @@ glance -o sbom.json && grype sbom:sbom.json
 ```python
 from glance import scan, Config
 
-result = scan(Config(include_paths=["/opt"]))
+result = scan(Config())
 for c in result.components:
     print(c.name, c.version, c.purl)
 ```

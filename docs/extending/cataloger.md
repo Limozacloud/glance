@@ -91,7 +91,7 @@ ECOSYSTEM_CATALOGERS = {
 }
 ```
 
-`scan()` will instantiate it with `cataloger_cls(paths=config.include_paths)`.
+`scan()` will instantiate it and call `catalog(report, index=file_index)` — the FileIndex (built by plocate/MFT) is passed in so the cataloger queries it for manifest files.
 
 ### Update the `ecosystem` group
 

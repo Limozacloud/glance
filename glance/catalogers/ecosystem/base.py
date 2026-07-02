@@ -77,11 +77,6 @@ class EcosystemCataloger:
         parts = path.replace("\\", "/").split("/")
         return any(p in _SKIP_DIRS for p in parts)
 
-    def _in_scope(self, path: str) -> bool:
-        if not self.paths:
-            return True
-        return any(path.startswith(root) for root in self.paths)
-
     def _index_candidates(self, index) -> list[str]:
         """Query a FileIndex built by discover_all()."""
         found: list[str] = []
@@ -92,8 +87,6 @@ class EcosystemCataloger:
                     continue
                 fname = os.path.basename(path)
                 if not self._is_manifest(fname):
-                    continue
-                if not self._in_scope(path):
                     continue
                 if self._in_skip_dir(path):
                     continue

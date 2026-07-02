@@ -12,22 +12,12 @@ import logging
 import sys
 
 from ..config import Config
-from ..models import ScanReport, SkipReason
-from . import engines, walk
+from ..models import ScanReport
+from . import engines
 from .gate import Gate
 from .index import FileIndex
 
 log = logging.getLogger(__name__)
-
-
-def _scope_skip(path: str, exclude_paths: list[str], excluded_prefixes: list[str]):
-    for prefix in exclude_paths:
-        if path == prefix or path.startswith(prefix.rstrip("/") + "/"):
-            return SkipReason.CONFIG_EXCLUDE_PATH, prefix
-    for prefix in excluded_prefixes:
-        if path == prefix or path.startswith(prefix.rstrip("/") + "/"):
-            return SkipReason.CONFIG_FS_TYPE, prefix
-    return None
 
 
 def _names_to_globs(names: list[str]) -> list[str]:
@@ -56,7 +46,6 @@ def _discover_linux(
 ) -> FileIndex:
     engine = engines.get_plocate(config)
 
-    excluded_prefixes = walk.excluded_mount_prefixes(config.exclude_fs_types)
     extra_gate = Gate(_names_to_globs(extra_names)) if extra_names else None
     anchors, unanchored = engines.anchors_for(gate.globs)
 
@@ -76,8 +65,6 @@ def _discover_linux(
 
     for path in engines.query(engine, combined_anchors):
         considered += 1
-        if _scope_skip(path, config.exclude_paths, excluded_prefixes) is not None:
-            continue
         if gate.matches(path) or (extra_gate and extra_gate.matches(path)):
             all_paths.add(path)
 
@@ -109,7 +96,6 @@ def _discover_windows(
         drives,
         names=combined_names or None,
         extensions=exts or None,
-        scope_paths=config.include_paths or None,
     ):
         considered += 1
         if gate.matches(path) or (extra_gate and extra_gate.matches(path)):

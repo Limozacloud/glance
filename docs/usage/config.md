@@ -5,31 +5,6 @@ glance accepts a YAML or JSON config file (`--config FILE`) or `Config` object i
 ## Full reference
 
 ```yaml
-# Paths to scan — ecosystem catalogers search here for manifests and install
-# stores. On Linux the binary cataloger uses plocate (not these paths directly);
-# on Windows it enumerates the MFT of all fixed drives.
-# Default (Linux): ["/"]
-# Default (Windows): all fixed drive letters, e.g. ["C:\\", "D:\\"]
-include_paths:
-  - /opt
-  - /usr/lib64
-
-# Path prefixes to always skip.
-exclude_paths:
-  - /proc
-  - /sys
-  - /run
-
-# Filesystem types never scanned (prevents accidentally reading NFS mounts).
-exclude_fs_types:
-  - nfs
-  - cifs
-  - tmpfs
-  - overlay
-  - devtmpfs
-  - sysfs
-  - proc
-
 # Glob gate: which filenames are interesting at all.
 # null = derive automatically from classifier definitions (recommended).
 file_globs: null
@@ -93,7 +68,6 @@ win_binary_engine: auto
 max_file_size: 209715200
 
 # Gate on ELF magic before running byte-regex scan.
-# Useful when include_paths contains many script files.
 elf_precheck: false
 
 # Hash each matched file. Adds sha256 to occurrences.

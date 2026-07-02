@@ -29,8 +29,8 @@ log = logging.getLogger(__name__)
 #: Default extensions — configurable via Config.win_pe_extensions.
 DEFAULT_PE_EXTENSIONS = frozenset({".dll", ".exe", ".sys"})
 
-#: Default paths to walk when no include_paths are configured.
-#: Deliberately excludes C:\Windows — those files are managed by Windows Update.
+#: Paths walked by the walk engine. Deliberately excludes C:\Windows — those files
+#: are managed by Windows Update.
 DEFAULT_WIN_PATHS = [
     r"C:\Program Files",
     r"C:\Program Files (x86)",

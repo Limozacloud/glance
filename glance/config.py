@@ -9,50 +9,9 @@ keep their default.
 from __future__ import annotations
 
 import json
-import os
-import string
-import sys
 from dataclasses import dataclass, field, fields
 from pathlib import Path
 from typing import Any
-
-#: Filesystem types excluded by default — network shares and virtual filesystems
-#: that should never be walked.
-DEFAULT_EXCLUDE_FS_TYPES = [
-    "nfs",
-    "nfs4",
-    "cifs",
-    "smbfs",
-    "fuse.sshfs",
-    "overlay",
-    "tmpfs",
-    "devtmpfs",
-    "proc",
-    "sysfs",
-    "cgroup",
-    "cgroup2",
-    "squashfs",
-    "autofs",
-]
-
-
-def _win_local_drives() -> list[str]:
-    """Return fixed local drives only — excludes network, removable, CD-ROM."""
-    import ctypes
-
-    DRIVE_FIXED = 3
-    return [
-        f"{d}:\\"
-        for d in string.ascii_uppercase
-        if os.path.exists(f"{d}:\\")
-        and ctypes.windll.kernel32.GetDriveTypeW(f"{d}:\\") == DRIVE_FIXED  # type: ignore[attr-defined]
-    ]
-
-
-if sys.platform == "win32":
-    DEFAULT_INCLUDE_PATHS = _win_local_drives()
-else:
-    DEFAULT_INCLUDE_PATHS = ["/"]
 
 
 @dataclass
@@ -60,9 +19,6 @@ class Config:
     """All knobs for a scan. See ``glance/default_config.yaml`` for docs."""
 
     # --- scope -----------------------------------------------------------------
-    include_paths: list[str] = field(default_factory=lambda: list(DEFAULT_INCLUDE_PATHS))
-    exclude_paths: list[str] = field(default_factory=list)
-    exclude_fs_types: list[str] = field(default_factory=lambda: list(DEFAULT_EXCLUDE_FS_TYPES))
     #: Glob gate. ``None`` means "derive from the active classifiers" (default).
     file_globs: list[str] | None = None
 

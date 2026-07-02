@@ -10,27 +10,6 @@
 # Scope
 # ---------------------------------------------------------------------------
 
-# Paths to exclude from results (prefix match).
-exclude_paths: []
-
-# Filesystem types excluded from results — plocate may index these but glance
-# will not return paths under their mount points.
-exclude_fs_types:
-  - nfs
-  - nfs4
-  - cifs
-  - smbfs
-  - fuse.sshfs
-  - overlay
-  - tmpfs
-  - devtmpfs
-  - proc
-  - sysfs
-  - cgroup
-  - cgroup2
-  - squashfs
-  - autofs
-
 # The glob gate. null = derive from the active classifiers (recommended).
 # Example to narrow it:
 #   file_globs:

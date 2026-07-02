@@ -100,9 +100,8 @@ glance/
 4. **Ecosystem catalogers.** For each cataloger in `ECOSYSTEM_CATALOGERS` (pip,
    go, npm, nuget, maven, gem, distinfo, node_installed, jar, gem_installed):
    - Skip if not in the enabled set.
-   - Instantiate with `paths=config.include_paths`.
-   - Call `catalog(report, index=file_index)` — queries the FileIndex when
-     available, otherwise walks the configured paths directly.
+   - Call `catalog(report, index=file_index)` — queries the FileIndex for
+     manifest files surfaced by plocate/MFT.
 
 5. **Result assembly.** Components from all three stages are merged into
    `ScanResult(components, report)`.
