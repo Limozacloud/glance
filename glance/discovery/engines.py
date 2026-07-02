@@ -37,9 +37,7 @@ def get_plocate(config) -> EngineInfo:
         )
     db = config.locate_db_path or "/var/lib/plocate/plocate.db"
     if not os.path.isfile(db):
-        raise RuntimeError(
-            f"plocate DB not found at {db!r} — run: updatedb --output {db}"
-        )
+        raise RuntimeError(f"plocate DB not found at {db!r} — run: updatedb --output {db}")
     return EngineInfo(name="plocate", binary=binary, db_path=db)
 
 

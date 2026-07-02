@@ -101,7 +101,10 @@ def test_config_from_json_file(tmp_path):
 
 def test_config_from_yaml_file(tmp_path):
     p = tmp_path / "c.yaml"
-    p.write_text("plocate_binary: /opt/limoza/bin/plocate\nlocate_db_path: /var/lib/limoza/plocate.db\n", encoding="utf-8")
+    p.write_text(
+        "plocate_binary: /opt/limoza/bin/plocate\nlocate_db_path: /var/lib/limoza/plocate.db\n",
+        encoding="utf-8",
+    )
     cfg = Config.from_file(str(p))
     assert cfg.plocate_binary == "/opt/limoza/bin/plocate"
     assert cfg.locate_db_path == "/var/lib/limoza/plocate.db"

@@ -44,6 +44,10 @@ class FileIndex:
                 result.extend(paths)
         return result
 
+    @property
+    def all_paths(self) -> frozenset[str]:
+        return self._paths
+
     def __len__(self) -> int:
         return len(self._paths)
 

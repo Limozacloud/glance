@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import os
-import sys
 from abc import abstractmethod
 
 from ...models import CatalogerStatus, Component, ComponentType, Occurrence, ScanReport, Source
@@ -114,75 +113,21 @@ class EcosystemCataloger:
                         found.append(os.path.join(dirpath, filename))
         return found
 
-    def _locate_candidates(self) -> list[str] | None:
-        """Query plocate/mlocate (Linux only). Returns None if unavailable."""
-        if sys.platform == "win32":
-            return None
-
-        from ...config import Engine, OnStaleDB
-        from ...discovery.engines import detect_engines, query
-
-        cfg = self.config
-        if cfg is not None and getattr(cfg, "engine", None) == Engine.WALK:
-            return None
-
-        db_override = getattr(cfg, "locate_db_path", None) if cfg else None
-        max_age = getattr(cfg, "max_db_age_hours", 24.0) if cfg else 24.0
-        on_stale = getattr(cfg, "on_stale_db", OnStaleDB.FALLBACK) if cfg else OnStaleDB.FALLBACK
-
-        engine = None
-        for e in detect_engines(db_override):
-            age = e.db_age_hours()
-            if age is None:
-                continue
-            if age > max_age:
-                if on_stale == OnStaleDB.FALLBACK:
-                    log.debug("ecosystem/%s: %s DB stale (%.1fh) -> next", self.name, e.name, age)
-                    continue
-                log.warning(
-                    "ecosystem/%s: %s DB stale (%.1fh), used anyway", self.name, e.name, age
-                )
-            engine = e
-            break
-
-        if engine is None:
-            return None
-
-        anchors = self.manifest_filenames()
-        found: list[str] = []
-        for path in query(engine, anchors, db_override):
-            fname = os.path.basename(path)
-            if not self._is_manifest(fname):
-                continue
-            if not self._in_scope(path):
-                continue
-            if self._in_skip_dir(path):
-                continue
-            found.append(path)
-
-        log.debug("ecosystem/%s: locate returned %d candidates", self.name, len(found))
-        return found
-
     # ── Catalog ───────────────────────────────────────────────────────────────
 
     def catalog(self, report: ScanReport, index=None) -> list[Component]:
         """Catalog components.
 
         When *index* is provided (a FileIndex from discover_all), queries it
-        directly. Otherwise falls back to locate/MFT/walk.
+        directly. Otherwise walks the configured paths.
         """
         candidates: list[str]
         if index is not None:
             candidates = self._index_candidates(index)
             engine_used = "index"
         else:
-            _located = self._locate_candidates()
-            engine_used = "locate"
-            if _located is None:
-                candidates = self._walk_candidates()
-                engine_used = "walk"
-            else:
-                candidates = _located
+            candidates = self._walk_candidates()
+            engine_used = "walk"
 
         components: list[Component] = []
         seen: set[tuple[str, str]] = set()
